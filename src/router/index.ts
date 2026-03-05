@@ -49,6 +49,13 @@ const routes: RouteRecordRaw[] = [
   }
 ]
 
+// 教师管理应用服务云平台登录页面路由
+routes.push({
+  path: '/teacher-platform',
+  name: 'TeacherPlatform',
+  component: () => import('@/views/TeacherPlatform/index.vue')
+})
+
 const router = createRouter({
   history: createWebHashHistory(),
   routes

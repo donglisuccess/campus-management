@@ -20,7 +20,7 @@
 .layout-main {
   position: relative;
   z-index: 2;
-  max-width: 1220px;
+  /* max-width: 1220px; */
   margin: 0 auto;
 }
 

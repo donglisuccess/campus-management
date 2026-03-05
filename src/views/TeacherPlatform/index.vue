@@ -96,6 +96,7 @@
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import { ADMIN_CREDENTIAL, TEACHER_CREDENTIAL } from '@/mock/teacherPlatform'
 
 const router = useRouter()
 
@@ -104,8 +105,8 @@ const activeTab = ref('teacher')
 const teacherRef = ref()
 const adminRef = ref()
 
-const teacherForm = reactive({ jobId: '', password: '' })
-const adminForm = reactive({ account: '', password: '' })
+const teacherForm = reactive({ jobId: 'teacher001', password: 'teacher001' })
+const adminForm = reactive({ account: 'admin', password: 'admin' })
 
 const teacherRules = {
   jobId: [{ required: true, message: '请输入工号', trigger: 'blur' }],
@@ -117,13 +118,25 @@ const adminRules = {
   password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
 }
 
+const managementRoute = '/teacher-platform/manage'
+
 function submitTeacher() {
   teacherRef.value.validate((valid: boolean) => {
-    if (valid) {
-      // TODO: 调用真实登录接口
-      ElMessage.success(`教师 ${teacherForm.jobId} 登录成功`)
-      router.push({ path: '/teacher' })
+    if (!valid) return
+
+    const isTeacherValid =
+      teacherForm.jobId === TEACHER_CREDENTIAL.jobId &&
+      teacherForm.password === TEACHER_CREDENTIAL.password
+
+    if (isTeacherValid) {
+      sessionStorage.setItem('tp_role', 'teacher')
+      sessionStorage.setItem('tp_user', teacherForm.jobId)
+      ElMessage.success('教师登录成功，正在进入管理后台')
+      router.push({ path: managementRoute })
+      return
     }
+
+    ElMessage.error('教师账号或密码错误')
   })
 }
 
@@ -133,11 +146,21 @@ function resetTeacher() {
 
 function submitAdmin() {
   adminRef.value.validate((valid: boolean) => {
-    if (valid) {
-      // TODO: 调用真实登录接口
-      ElMessage.success(`管理员 ${adminForm.account} 登录成功`)
-      router.push({ path: '/' })
+    if (!valid) return
+
+    const isAdminValid =
+      adminForm.account === ADMIN_CREDENTIAL.account &&
+      adminForm.password === ADMIN_CREDENTIAL.password
+
+    if (isAdminValid) {
+      sessionStorage.setItem('tp_role', 'admin')
+      sessionStorage.removeItem('tp_user')
+      ElMessage.success('管理员登录成功，正在进入管理后台')
+      router.push({ path: managementRoute })
+      return
     }
+
+    ElMessage.error('管理员账号或密码错误')
   })
 }
 

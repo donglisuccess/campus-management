@@ -56,6 +56,12 @@ routes.push({
   component: () => import('@/views/TeacherPlatform/index.vue')
 })
 
+routes.push({
+  path: '/teacher-platform/manage',
+  name: 'TeacherPlatformManage',
+  component: () => import('@/views/TeacherPlatform/Manage.vue')
+})
+
 const router = createRouter({
   history: createWebHashHistory(),
   routes

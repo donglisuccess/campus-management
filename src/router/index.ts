@@ -27,6 +27,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/Fitness/index.vue')
       },
       {
+        path: 'fitness/manage',
+        name: 'FitnessManage',
+        component: () => import('@/views/Fitness/Manage.vue')
+      },
+      {
         path: 'vr-training',
         name: 'VrTraining',
         component: () => import('@/views/VrTraining/index.vue')

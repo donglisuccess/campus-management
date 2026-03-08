@@ -146,6 +146,12 @@ const submitLogin = async () => {
     return
   }
 
+  if (activeRole.value === 'headTeacher') {
+    ElMessage.success('班主任登录成功，正在进入班级跟踪界面')
+    void router.push('/fitness/head-teacher')
+    return
+  }
+
   ElMessage.success(`${activeRoleProfile.value.name}登录成功，当前演示版暂未开放对应后台`) 
 }
 

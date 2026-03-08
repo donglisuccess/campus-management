@@ -7,6 +7,13 @@ export type LabMenuId =
   | 'report-center'
   | 'operation-logs'
 
+export type LabManagerMenuId =
+  | 'reservation-manage'
+  | 'schedule-query'
+  | 'access-records'
+  | 'inspection-tasks'
+  | 'usage-analysis'
+
 export interface LabSelectOption {
   label: string
   value: string
@@ -589,4 +596,323 @@ export const LAB_SYSTEM_STATS: LabStatCard[] = [
 
 export const getLabMenuById = (menuId: LabMenuId) => {
   return LAB_SYSTEM_ADMIN_MENUS.find((item) => item.id === menuId) ?? LAB_SYSTEM_ADMIN_MENUS[0]
+}
+
+export const LAB_MANAGER_MENUS: Array<LabMenuConfig & { id: LabManagerMenuId }> = [
+  {
+    id: 'reservation-manage',
+    group: '预约管理',
+    title: '实验室预约审核',
+    description: '集中处理教师和学生提交的实验室预约申请，跟踪预约时段与审核结果。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索预约单号、申请人、实验室名称' },
+      {
+        key: 'applicantRole',
+        label: '申请角色',
+        type: 'select',
+        options: [
+          { label: '教师', value: '教师' },
+          { label: '学生', value: '学生' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '预约状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' },
+          { label: '已取消', value: '已取消' }
+        ]
+      },
+      { key: 'reservationDate', label: '预约日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'reservationNo', label: '预约单号', minWidth: 150 },
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'applicant', label: '申请人', minWidth: 110 },
+      { prop: 'applicantRole', label: '角色', minWidth: 100 },
+      { prop: 'courseName', label: '课程/用途', minWidth: 180 },
+      { prop: 'reservationDate', label: '预约日期', minWidth: 120 },
+      { prop: 'timeSlot', label: '预约时段', minWidth: 180 },
+      { prop: 'status', label: '预约状态', minWidth: 110 },
+      { prop: 'reviewer', label: '审核人', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'schedule-query',
+    group: '预约管理',
+    title: '实验室课表与占用',
+    description: '查看实验室排课、预约占用与空闲时段，为开放安排提供依据。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索实验室、课程、教师' },
+      {
+        key: 'weekDay',
+        label: '星期',
+        type: 'select',
+        options: [
+          { label: '星期一', value: '星期一' },
+          { label: '星期二', value: '星期二' },
+          { label: '星期三', value: '星期三' },
+          { label: '星期四', value: '星期四' },
+          { label: '星期五', value: '星期五' }
+        ]
+      },
+      {
+        key: 'occupancyStatus',
+        label: '占用状态',
+        type: 'select',
+        options: [
+          { label: '已排课', value: '已排课' },
+          { label: '预约占用', value: '预约占用' },
+          { label: '空闲', value: '空闲' }
+        ]
+      },
+      {
+        key: 'labType',
+        label: '实验室类型',
+        type: 'select',
+        options: [
+          { label: '电子实训室', value: '电子实训室' },
+          { label: '智能制造实训室', value: '智能制造实训室' },
+          { label: '护理技能实训室', value: '护理技能实训室' },
+          { label: '汽车检修实训室', value: '汽车检修实训室' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'labType', label: '类型', minWidth: 150 },
+      { prop: 'weekDay', label: '星期', minWidth: 100 },
+      { prop: 'section', label: '节次', minWidth: 120 },
+      { prop: 'courseName', label: '课程名称', minWidth: 180 },
+      { prop: 'teacherName', label: '任课教师', minWidth: 110 },
+      { prop: 'className', label: '班级', minWidth: 140 },
+      { prop: 'occupancyStatus', label: '占用状态', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'access-records',
+    group: '运行管理',
+    title: '门禁通行记录',
+    description: '查看实验室门禁进出记录、刷卡结果与异常时段，支撑安全追溯。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索姓名、工号/学号、门禁编号' },
+      {
+        key: 'identityType',
+        label: '身份类型',
+        type: 'select',
+        options: [
+          { label: '教师', value: '教师' },
+          { label: '学生', value: '学生' },
+          { label: '管理员', value: '管理员' }
+        ]
+      },
+      {
+        key: 'result',
+        label: '通行结果',
+        type: 'select',
+        options: [
+          { label: '通过', value: '通过' },
+          { label: '拒绝', value: '拒绝' },
+          { label: '预警', value: '预警' }
+        ]
+      },
+      { key: 'recordDate', label: '通行日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'recordNo', label: '记录编号', minWidth: 150 },
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'doorAccess', label: '门禁编号', minWidth: 120 },
+      { prop: 'personName', label: '姓名', minWidth: 110 },
+      { prop: 'identityType', label: '身份类型', minWidth: 100 },
+      { prop: 'personCode', label: '工号/学号', minWidth: 140 },
+      { prop: 'recordTime', label: '通行时间', minWidth: 180 },
+      { prop: 'result', label: '通行结果', minWidth: 100 }
+    ]
+  },
+  {
+    id: 'inspection-tasks',
+    group: '运行管理',
+    title: '值班巡检任务',
+    description: '管理实验室日常巡检、卫生检查、设备点检与隐患整改任务。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索任务编号、实验室、责任人' },
+      {
+        key: 'taskType',
+        label: '任务类型',
+        type: 'select',
+        options: [
+          { label: '开课前巡检', value: '开课前巡检' },
+          { label: '设备点检', value: '设备点检' },
+          { label: '安全检查', value: '安全检查' },
+          { label: '卫生检查', value: '卫生检查' }
+        ]
+      },
+      {
+        key: 'taskStatus',
+        label: '任务状态',
+        type: 'select',
+        options: [
+          { label: '待执行', value: '待执行' },
+          { label: '处理中', value: '处理中' },
+          { label: '已完成', value: '已完成' },
+          { label: '逾期', value: '逾期' }
+        ]
+      },
+      { key: 'planDate', label: '计划日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'taskNo', label: '任务编号', minWidth: 150 },
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'taskType', label: '任务类型', minWidth: 130 },
+      { prop: 'manager', label: '责任人', minWidth: 110 },
+      { prop: 'planDate', label: '计划日期', minWidth: 120 },
+      { prop: 'completionRate', label: '完成度', minWidth: 100 },
+      { prop: 'issueCount', label: '发现问题', minWidth: 100 },
+      { prop: 'taskStatus', label: '任务状态', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'usage-analysis',
+    group: '统计分析',
+    title: '实验室使用分析',
+    description: '按实验室维度统计课表占用、预约次数、利用率与异常关闭情况。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索实验室名称、负责人' },
+      {
+        key: 'campus',
+        label: '校区',
+        type: 'select',
+        options: [
+          { label: '主校区', value: '主校区' },
+          { label: '产教融合园', value: '产教融合园' },
+          { label: '医护实训中心', value: '医护实训中心' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '运行状态',
+        type: 'select',
+        options: [
+          { label: '开放中', value: '开放中' },
+          { label: '维护中', value: '维护中' },
+          { label: '停用', value: '停用' }
+        ]
+      },
+      {
+        key: 'term',
+        label: '统计周期',
+        type: 'select',
+        options: [
+          { label: '2025-2026学年上学期', value: '2025-2026学年上学期' },
+          { label: '2025-2026学年下学期', value: '2025-2026学年下学期' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'campus', label: '校区', minWidth: 110 },
+      { prop: 'manager', label: '负责人', minWidth: 110 },
+      { prop: 'term', label: '统计周期', minWidth: 160 },
+      { prop: 'classHours', label: '排课课时', minWidth: 100 },
+      { prop: 'reservationCount', label: '预约次数', minWidth: 100 },
+      { prop: 'usageRate', label: '使用率', minWidth: 110 },
+      { prop: 'abnormalCloseCount', label: '异常闭馆', minWidth: 100 },
+      { prop: 'status', label: '运行状态', minWidth: 100 }
+    ]
+  }
+]
+
+export const LAB_MANAGER_RESERVATION_ROWS = Array.from({ length: 54 }, (_, index) => {
+  const lab = pick(generatedLabs, index)
+  const role = pick(['教师', '学生'], index)
+  return {
+    reservationNo: `YY${202603}${pad(index + 1, 4)}`,
+    labName: lab.labName,
+    applicant: pick(personNames, index + 1),
+    applicantRole: role,
+    courseName: role === '教师' ? pick(['PLC编程实训', '电子焊接训练', '护理操作演练', '新能源汽车检修'], index) : pick(['社团训练', '课后开放实训', '技能竞赛备赛', '创新项目调试'], index),
+    reservationDate: `2026-${pad((index % 3) + 1)}-${pad((index % 27) + 1)}`,
+    timeSlot: pick(['08:00-10:00', '10:20-12:00', '14:00-16:00', '18:30-20:30'], index),
+    status: pick(['待审核', '已通过', '已通过', '已驳回', '已取消'], index),
+    reviewer: pick(['赵工', '顾工', '值班管理员', '蒋老师'], index)
+  }
+})
+
+export const LAB_MANAGER_SCHEDULE_ROWS = Array.from({ length: 60 }, (_, index) => {
+  const lab = pick(generatedLabs, index)
+  return {
+    labName: lab.labName,
+    labType: lab.labType,
+    weekDay: pick(['星期一', '星期二', '星期三', '星期四', '星期五'], index),
+    section: pick(['1-2节', '3-4节', '5-6节', '7-8节'], index),
+    courseName: pick(['PLC编程实训', '电子焊接工艺', '护理基础操作', '汽车电控检测', '开放预约'], index),
+    teacherName: pick(['陈老师', '刘老师', '何老师', '汪老师', '值班管理员'], index),
+    className: pick(['23机电1班', '23电子2班', '24护理3班', '23汽修2班', '开放预约'], index),
+    occupancyStatus: pick(['已排课', '已排课', '预约占用', '空闲'], index)
+  }
+})
+
+export const LAB_MANAGER_ACCESS_ROWS = Array.from({ length: 80 }, (_, index) => {
+  const lab = pick(generatedLabs, index)
+  const identityType = pick(['教师', '学生', '管理员'], index)
+  return {
+    recordNo: `MJ${202603}${pad(index + 1, 5)}`,
+    labName: lab.labName,
+    doorAccess: lab.doorAccess,
+    personName: pick(personNames, index),
+    identityType,
+    personCode: identityType === '学生' ? `2024${pad(1000 + index, 4)}` : `T${pad(200 + index, 4)}`,
+    recordTime: makeDate((index % 3) + 1, (index % 28) + 1, 7 + (index % 13), (index * 9) % 60),
+    recordDate: `2026-${pad((index % 3) + 1)}-${pad((index % 28) + 1)}`,
+    result: pick(['通过', '通过', '通过', '拒绝', '预警'], index)
+  }
+})
+
+export const LAB_MANAGER_INSPECTION_ROWS = Array.from({ length: 42 }, (_, index) => {
+  const lab = pick(generatedLabs, index)
+  const issueCount = index % 4
+  return {
+    taskNo: `XJ${202603}${pad(index + 1, 4)}`,
+    labName: lab.labName,
+    taskType: pick(['开课前巡检', '设备点检', '安全检查', '卫生检查'], index),
+    manager: lab.manager,
+    planDate: `2026-${pad((index % 3) + 1)}-${pad((index % 26) + 2)}`,
+    completionRate: pick(['0%', '35%', '75%', '100%'], index),
+    issueCount,
+    taskStatus: issueCount > 0 ? pick(['处理中', '逾期', '已完成'], index) : pick(['待执行', '已完成'], index)
+  }
+})
+
+export const LAB_MANAGER_USAGE_ROWS = generatedLabs.map((lab, index) => ({
+  labName: lab.labName,
+  campus: lab.campus,
+  manager: lab.manager,
+  term: pick(['2025-2026学年上学期', '2025-2026学年下学期'], index),
+  classHours: 180 + (index % 9) * 16,
+  reservationCount: 24 + (index % 12) * 3,
+  usageRate: `${68 + (index % 18)}%`,
+  abnormalCloseCount: index % 5,
+  status: lab.status
+}))
+
+export const LAB_MANAGER_MENU_ROWS: Record<LabManagerMenuId, Record<string, string | number>[]> = {
+  'reservation-manage': LAB_MANAGER_RESERVATION_ROWS,
+  'schedule-query': LAB_MANAGER_SCHEDULE_ROWS,
+  'access-records': LAB_MANAGER_ACCESS_ROWS,
+  'inspection-tasks': LAB_MANAGER_INSPECTION_ROWS,
+  'usage-analysis': LAB_MANAGER_USAGE_ROWS
+}
+
+export const LAB_MANAGER_STATS: LabStatCard[] = [
+  { label: '负责实验室', value: `${generatedLabs.length}` },
+  { label: '待审预约', value: `${LAB_MANAGER_RESERVATION_ROWS.filter((item) => item.status === '待审核').length}` },
+  { label: '今日通行', value: `${LAB_MANAGER_ACCESS_ROWS.slice(0, 24).length}` },
+  { label: '待巡检任务', value: `${LAB_MANAGER_INSPECTION_ROWS.filter((item) => item.taskStatus === '待执行' || item.taskStatus === '处理中').length}` }
+]
+
+export const getLabManagerMenuById = (menuId: LabManagerMenuId) => {
+  return LAB_MANAGER_MENUS.find((item) => item.id === menuId) ?? LAB_MANAGER_MENUS[0]
 }

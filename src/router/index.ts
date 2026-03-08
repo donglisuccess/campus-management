@@ -56,6 +56,11 @@ const routes: RouteRecordRaw[] = [
         path: 'welcome',
         name: 'Welcome',
         component: () => import('@/views/Welcome/index.vue')
+      },
+      {
+        path: 'welcome/dashboard',
+        name: 'WelcomeDashboard',
+        component: () => import('@/views/Welcome/Dashboard.vue')
       }
     ]
   },

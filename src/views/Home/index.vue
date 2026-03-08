@@ -30,11 +30,7 @@
         :md="8"
         class="entry-col"
       >
-        <el-card
-          :class="['entry-card', `entry-card--${item.tone}`]"
-          shadow="hover"
-          @click="goToSystem(item.path)"
-        >
+        <el-card :class="['entry-card', `entry-card--${item.tone}`]" shadow="hover" @click="goToSystem(item.path)">
           <div class="entry-topline">
             <span class="entry-index">{{ String(index + 1).padStart(2, '0') }}</span>
             <span class="entry-tag">应用服务</span>
@@ -49,7 +45,19 @@
 
           <p class="entry-description">{{ item.description }}</p>
 
-          <el-button type="primary" round @click.stop="goToSystem(item.path)" class="entry-button">
+          <div v-if="item.actions?.length" class="entry-action-row">
+            <el-button
+              v-for="action in item.actions"
+              :key="action.label"
+              :type="action.type ?? 'default'"
+              round
+              @click.stop="goToSystem(action.path)"
+              class="entry-button entry-button--split"
+            >
+              {{ action.label }}
+            </el-button>
+          </div>
+          <el-button v-else type="primary" round @click.stop="goToSystem(item.path)" class="entry-button">
             进入系统
           </el-button>
         </el-card>
@@ -63,12 +71,19 @@ import * as Icons from '@element-plus/icons-vue'
 import type { Component } from 'vue'
 import { useRouter } from 'vue-router'
 
+interface SystemAction {
+  label: string
+  path: string
+  type?: 'primary' | 'default'
+}
+
 interface SystemEntry {
   title: string
   description: string
   path: string
   icon: string
   tone: 'teal' | 'sky' | 'amber' | 'violet' | 'emerald' | 'rose'
+  actions?: SystemAction[]
 }
 
 const router = useRouter()
@@ -122,7 +137,11 @@ const systems: SystemEntry[] = [
       '用于新生入学报到管理，包含领导驾驶舱、微信小程序端和PC管理端，实现迎新流程数字化管理。',
     path: '/welcome',
     icon: 'School',
-    tone: 'rose'
+    tone: 'rose',
+    actions: [
+      { label: '进入大屏领导驾驶舱', path: '/welcome/dashboard', type: 'primary' },
+      { label: '进入管理后台', path: '/welcome', type: 'default' }
+    ]
   }
 ]
 
@@ -379,11 +398,40 @@ const resolveIcon = (name: string): Component => {
   color: var(--home-text-sub);
 }
 
+.entry-action-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
 .entry-button {
   width: 108px;
   border: none;
   background: linear-gradient(135deg, #0f766e, #0e7490);
   align-self: flex-end;
+}
+
+.entry-button--split {
+  width: 100%;
+}
+
+.entry-button--split:deep(.el-button) {
+  width: 100%;
+}
+
+.entry-action-row :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.entry-action-row :deep(.el-button.is-round) {
+  padding-inline: 12px;
+}
+
+.entry-action-row :deep(.el-button--default) {
+  border-color: rgba(190, 24, 93, 0.2);
+  color: #9d174d;
+  background: rgba(255, 241, 242, 0.92);
 }
 
 .entry-card--teal {
@@ -438,6 +486,10 @@ const resolveIcon = (name: string): Component => {
 
   .entry-card :deep(.el-card__body) {
     padding: 16px;
+  }
+
+  .entry-action-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

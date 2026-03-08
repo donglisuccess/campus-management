@@ -1,9 +1,13 @@
 <template>
   <section class="placeholder-page">
     <el-card class="placeholder-card">
+      <p class="placeholder-kicker">Welcome Admin</p>
       <h2 class="placeholder-title">智慧校园迎新小工具</h2>
-      <p class="placeholder-desc">智慧校园迎新小工具系统开发中...</p>
-      <el-button type="primary" round @click="goHome">返回首页</el-button>
+      <p class="placeholder-desc">管理后台入口已预留，可继续扩展新生信息管理、报到审核、宿舍分配与通知发布模块。</p>
+      <div class="placeholder-actions">
+        <el-button type="primary" round @click="goDashboard">进入领导驾驶舱</el-button>
+        <el-button round @click="goHome">返回首页</el-button>
+      </div>
     </el-card>
   </section>
 </template>
@@ -12,6 +16,10 @@
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+
+const goDashboard = () => {
+  void router.push('/welcome/dashboard')
+}
 
 const goHome = () => {
   void router.push('/')
@@ -32,6 +40,18 @@ const goHome = () => {
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.08);
 }
 
+.placeholder-kicker {
+  display: inline-flex;
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #be123c;
+  background: rgba(251, 113, 133, 0.12);
+}
+
 .placeholder-title {
   font-size: 28px;
   color: #0f172a;
@@ -42,5 +62,12 @@ const goHome = () => {
   font-size: 16px;
   color: #475569;
   margin-bottom: 22px;
+}
+
+.placeholder-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 </style>

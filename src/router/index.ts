@@ -49,6 +49,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'lab',
         name: 'Lab',
+        meta: { requiresLabAuth: true },
         component: () => import('@/views/Lab/index.vue')
       },
       {
@@ -66,6 +67,12 @@ const routes: RouteRecordRaw[] = [
 
 // 教师管理应用服务云平台登录页面路由
 routes.push({
+  path: '/lab/login',
+  name: 'LabLogin',
+  component: () => import('@/views/Lab/Login.vue')
+})
+
+routes.push({
   path: '/teacher-platform',
   name: 'TeacherPlatform',
   component: () => import('@/views/TeacherPlatform/index.vue')
@@ -80,6 +87,20 @@ routes.push({
 const router = createRouter({
   history: createWebHashHistory(),
   routes
+})
+
+router.beforeEach((to) => {
+  const hasLabAuth = sessionStorage.getItem('lab_auth') === '1'
+
+  if (to.meta.requiresLabAuth && !hasLabAuth) {
+    return '/lab/login'
+  }
+
+  if (to.path === '/lab/login' && hasLabAuth) {
+    return '/lab'
+  }
+
+  return true
 })
 
 export default router

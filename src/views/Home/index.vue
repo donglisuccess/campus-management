@@ -112,7 +112,7 @@ const systems: SystemEntry[] = [
   {
     title: '实验室综合管理云平台',
     description: '用于实训室与实验室设备管理、预约管理、数据统计分析和资产管理，实现实验室信息化管理。',
-    path: '/lab',
+    path: '/lab/login',
     icon: 'Cpu',
     tone: 'emerald'
   },

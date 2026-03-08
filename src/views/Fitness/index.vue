@@ -140,7 +140,13 @@ const submitLogin = async () => {
     return
   }
 
-  ElMessage.success(`${activeRoleProfile.value.name}登录成功`)
+  if (activeRole.value === 'teacher') {
+    ElMessage.success('体育教师登录成功，正在进入工作台')
+    void router.push('/fitness/teacher')
+    return
+  }
+
+  ElMessage.success(`${activeRoleProfile.value.name}登录成功，当前演示版暂未开放对应后台`) 
 }
 
 const goHome = () => {

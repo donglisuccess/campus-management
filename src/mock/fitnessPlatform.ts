@@ -15,6 +15,11 @@ import {
   queryFitnessScoreSummary
 } from './fitnessScores'
 import {
+  FITNESS_DEVICE_COLUMNS,
+  FITNESS_DEVICE_HIGHLIGHTS,
+  getFitnessDeviceMenuStats
+} from './fitnessDevices'
+import {
   FITNESS_VIDEO_COLUMNS,
   FITNESS_VIDEO_HIGHLIGHTS,
   FITNESS_VIDEO_STATS,
@@ -199,60 +204,10 @@ export const FITNESS_ADMIN_MENU_ITEMS: FitnessAdminMenuItem[] = [
     group: '设备中心',
     title: '智能设备管理',
     description: '维护体测设备档案、IP、项目类型、访问密钥，并查看设备在线与空间使用情况。',
-    stats: [
-      { label: '设备总数', value: '132' },
-      { label: '在线设备', value: '126' },
-      { label: '离线设备', value: '6' },
-      { label: '待鉴权', value: '3' }
-    ],
-    highlights: [
-      '支持新增、删除、修改体测设备。',
-      '支持访问密钥鉴权和参数配置。',
-      '支持查看人脸数、成绩数和视频数量。'
-    ],
-    columns: [
-      { prop: 'deviceName', label: '设备名称', minWidth: 150 },
-      { prop: 'ip', label: 'IP 地址', minWidth: 140 },
-      { prop: 'type', label: '训练项目', minWidth: 120 },
-      { prop: 'status', label: '在线状态', minWidth: 120 },
-      { prop: 'storage', label: '存储空间', minWidth: 120 }
-    ],
-    rows: [
-      { deviceName: '50 米跑 A-01', ip: '10.10.1.21', type: '短跑', status: '在线', storage: '68%' },
-      { deviceName: '立定跳远 C-02', ip: '10.10.3.18', type: '跳远', status: '离线', storage: '92%' },
-      { deviceName: '仰卧起坐 B-03', ip: '10.10.2.26', type: '力量', status: '在线', storage: '74%' },
-      { deviceName: '肺活量 D-05', ip: '10.10.4.09', type: '肺活量', status: '在线', storage: '57%' }
-    ]
-  },
-  {
-    id: 'sync',
-    group: '设备中心',
-    title: '设备数据同步',
-    description: '管理人脸下发、设备端人脸增删改、成绩回传和同步失败重试。',
-    stats: [
-      { label: '今日同步任务', value: '214' },
-      { label: '成功任务', value: '198' },
-      { label: '失败任务', value: '16' },
-      { label: '待重试', value: '9' }
-    ],
-    highlights: [
-      '建立通信后自动同步学生人脸至设备。',
-      '同步失败任务支持按设备重试。',
-      '所有同步记录保留时间戳与结果明细。'
-    ],
-    columns: [
-      { prop: 'taskType', label: '任务类型', minWidth: 150 },
-      { prop: 'deviceName', label: '设备名称', minWidth: 150 },
-      { prop: 'result', label: '执行结果', minWidth: 120 },
-      { prop: 'count', label: '数量', minWidth: 100 },
-      { prop: 'time', label: '执行时间', minWidth: 180 }
-    ],
-    rows: [
-      { taskType: '人脸下发', deviceName: '50 米跑 A-01', result: '成功', count: '214', time: '2026-03-07 12:10' },
-      { taskType: '人脸删除', deviceName: '立定跳远 C-02', result: '失败', count: '18', time: '2026-03-07 12:22' },
-      { taskType: '成绩回传', deviceName: '仰卧起坐 B-03', result: '成功', count: '2,118', time: '2026-03-07 14:05' },
-      { taskType: '视频索引同步', deviceName: '肺活量 D-05', result: '待重试', count: '86', time: '2026-03-07 13:48' }
-    ]
+    stats: getFitnessDeviceMenuStats(),
+    highlights: FITNESS_DEVICE_HIGHLIGHTS,
+    columns: [...FITNESS_DEVICE_COLUMNS],
+    rows: []
   },
   {
     id: 'videos',

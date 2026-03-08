@@ -99,6 +99,9 @@
                     <el-option v-for="item in scoreStatusOptions" :key="item" :label="item" :value="item" />
                   </el-select>
                 </template>
+                <template v-if="isDeviceMenu">
+                  <el-button type="primary" @click="openDeviceCreator">新增设备</el-button>
+                </template>
                 <el-button @click="resetSearch">重置</el-button>
               </div>
             </div>
@@ -144,6 +147,21 @@
                 </div>
                 <div v-else-if="isScoreMenu && column.prop === 'actions'" class="fitness-row-actions">
                   <el-button size="small" type="primary" plain @click="openScoreDetail(scope.row)">查看详情</el-button>
+                </div>
+                <div v-else-if="isDeviceMenu && column.prop === 'actions'" class="fitness-row-actions">
+                  <el-button size="small" type="primary" plain @click="authorizeDevice(scope.row)">鉴权</el-button>
+                  <el-button
+                    size="small"
+                    type="success"
+                    plain
+                    :disabled="scope.row.status !== '在线'"
+                    @click="syncDeviceStudents(scope.row)"
+                  >
+                    同步人脸
+                  </el-button>
+                  <el-button size="small" type="primary" @click="openDeviceFaceManager(scope.row)">查看人脸</el-button>
+                  <el-button size="small" @click="openDeviceEditor(scope.row)">编辑</el-button>
+                  <el-button size="small" type="danger" plain @click="removeDevice(scope.row)">删除</el-button>
                 </div>
                 <div v-else-if="isVideoMenu && column.prop === 'actions'" class="fitness-row-actions">
                   <el-button size="small" type="primary" plain @click="openVideoDetail(scope.row)">查看详情</el-button>
@@ -224,6 +242,124 @@
           <div class="fitness-dialog-actions">
             <el-button @click="studentEditorVisible = false">取消</el-button>
             <el-button type="primary" @click="submitStudentEdit">保存</el-button>
+          </div>
+        </template>
+      </el-dialog>
+
+      <el-dialog v-model="deviceEditorVisible" :title="deviceDialogTitle" width="760px">
+        <el-form :model="deviceEditForm" label-width="92px" class="fitness-edit-form">
+          <el-form-item label="设备名称">
+            <el-input v-model="deviceEditForm.deviceName" />
+          </el-form-item>
+          <el-form-item label="IP 地址">
+            <el-input v-model="deviceEditForm.ip" />
+          </el-form-item>
+          <el-form-item label="训练项目">
+            <el-select v-model="deviceEditForm.type">
+              <el-option v-for="item in deviceTypeOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="在线状态">
+            <el-select v-model="deviceEditForm.status">
+              <el-option v-for="item in deviceStatusOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="存储空间">
+            <el-input v-model="deviceEditForm.storage" placeholder="例如 68%" />
+          </el-form-item>
+          <el-form-item label="设备位置">
+            <el-input v-model="deviceEditForm.location" />
+          </el-form-item>
+          <el-form-item label="访问密钥" class="fitness-edit-form-full">
+            <el-input v-model="deviceEditForm.secretKey" />
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <div class="fitness-dialog-actions">
+            <el-button @click="deviceEditorVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitDeviceEdit">保存</el-button>
+          </div>
+        </template>
+      </el-dialog>
+      <el-dialog v-model="deviceFaceVisible" :title="deviceFaceDialogTitle" width="1080px">
+        <div class="fitness-detail-toolbar">
+          <el-input
+            v-model="deviceFaceKeyword"
+            placeholder="搜索学号、姓名、班级"
+            clearable
+            class="fitness-search-input"
+          />
+          <el-button type="primary" @click="openDeviceFaceCreator">新增人脸</el-button>
+        </div>
+
+        <el-table :data="deviceFaceRows" border stripe class="fitness-data-table">
+          <el-table-column prop="studentId" label="学号" min-width="140" />
+          <el-table-column prop="studentName" label="姓名" min-width="110" />
+          <el-table-column prop="className" label="班级" min-width="140" />
+          <el-table-column label="人脸照片" min-width="110">
+            <template #default="scope">
+              <div class="fitness-photo-cell">
+                <el-image
+                  :src="scope.row.facePhotoUrl"
+                  fit="cover"
+                  :preview-src-list="[scope.row.facePhotoUrl]"
+                  preview-teleported
+                  class="fitness-photo-image"
+                />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="syncStatus" label="同步状态" min-width="110" />
+          <el-table-column prop="updatedAt" label="最近更新" min-width="170" />
+          <el-table-column label="操作" min-width="170">
+            <template #default="scope">
+              <div class="fitness-row-actions">
+                <el-button size="small" @click="openDeviceFaceEditor(scope.row)">编辑</el-button>
+                <el-button size="small" type="danger" plain @click="removeDeviceFace(scope.row)">删除</el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="fitness-pagination fitness-detail-pagination">
+          <el-pagination
+            v-model:current-page="deviceFacePage"
+            v-model:page-size="deviceFacePageSize"
+            background
+            layout="total, sizes, prev, pager, next"
+            :page-sizes="[10, 20, 50]"
+            :total="deviceFaceTotal"
+          />
+        </div>
+      </el-dialog>
+
+      <el-dialog v-model="deviceFaceEditorVisible" :title="deviceFaceEditorTitle" width="760px">
+        <el-form :model="deviceFaceEditForm" label-width="88px" class="fitness-edit-form">
+          <el-form-item label="学号">
+            <el-input v-model="deviceFaceEditForm.studentId" />
+          </el-form-item>
+          <el-form-item label="姓名">
+            <el-input v-model="deviceFaceEditForm.studentName" />
+          </el-form-item>
+          <el-form-item label="班级">
+            <el-input v-model="deviceFaceEditForm.className" />
+          </el-form-item>
+          <el-form-item label="同步状态">
+            <el-select v-model="deviceFaceEditForm.syncStatus">
+              <el-option label="已同步" value="已同步" />
+              <el-option label="待更新" value="待更新" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="照片链接" class="fitness-edit-form-full">
+            <el-input v-model="deviceFaceEditForm.facePhotoUrl" placeholder="请输入人脸照片链接" />
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <div class="fitness-dialog-actions">
+            <el-button @click="deviceFaceEditorVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitDeviceFaceEdit">保存</el-button>
           </div>
         </template>
       </el-dialog>
@@ -342,6 +478,25 @@ import {
   type FitnessStudentRecord
 } from '@/mock/fitnessStudents'
 import {
+  authenticateFitnessDevice,
+  createFitnessDeviceFace,
+  deleteFitnessDeviceFace,
+  FITNESS_DEVICE_HIGHLIGHTS,
+  FITNESS_DEVICE_STATUS_OPTIONS,
+  FITNESS_DEVICE_TYPE_OPTIONS,
+  createFitnessDevice,
+  deleteFitnessDevice,
+  getFitnessDeviceFaceTotal,
+  getFitnessDeviceMenuStats,
+  getFitnessDeviceRecords,
+  queryFitnessDeviceFaces,
+  syncFitnessStudentsToDevice,
+  updateFitnessDeviceFace,
+  type FitnessDeviceFaceRecord,
+  updateFitnessDevice,
+  type FitnessDeviceRecord
+} from '@/mock/fitnessDevices'
+import {
   FITNESS_SCORE_DETAIL_COLUMNS,
   FITNESS_SCORE_DETAIL_RESULT_OPTIONS,
   FITNESS_SCORE_DETAIL_STATUS_OPTIONS,
@@ -370,6 +525,7 @@ const router = useRouter()
 const ACCOUNT_MENU_ID = 'accounts'
 const STUDENT_MENU_ID = 'students'
 const SCORE_MENU_ID = 'scores'
+const DEVICE_MENU_ID = 'devices'
 const VIDEO_MENU_ID = 'videos'
 const activeMenuId = ref('dashboard')
 const searchKeyword = ref('')
@@ -387,6 +543,41 @@ const studentClassFilter = ref('')
 const studentFaceStatusFilter = ref('')
 const studentQualityFilter = ref('')
 const studentEditorVisible = ref(false)
+const deviceRows = ref<FitnessDeviceRecord[]>(getFitnessDeviceRecords())
+const deviceEditorVisible = ref(false)
+const deviceDialogTitle = ref('新增设备')
+const deviceEditMode = ref<'create' | 'edit'>('create')
+const deviceEditForm = ref<FitnessDeviceRecord>({
+  deviceId: '',
+  deviceName: '',
+  ip: '',
+  type: FITNESS_DEVICE_TYPE_OPTIONS[0],
+  status: FITNESS_DEVICE_STATUS_OPTIONS[0],
+  storage: '0%',
+  secretKey: '',
+  location: '',
+  actions: '管理'
+})
+const deviceFaceVisible = ref(false)
+const deviceFaceDialogTitle = ref('设备人脸信息')
+const currentDeviceFaceDeviceId = ref('')
+const deviceFaceKeyword = ref('')
+const deviceFaceRows = ref<FitnessDeviceFaceRecord[]>([])
+const deviceFaceTotal = ref(0)
+const deviceFacePage = ref(1)
+const deviceFacePageSize = ref(10)
+const deviceFaceEditorVisible = ref(false)
+const deviceFaceEditorTitle = ref('新增人脸')
+const deviceFaceEditMode = ref<'create' | 'edit'>('create')
+const deviceFaceEditForm = ref<FitnessDeviceFaceRecord>({
+  faceId: '',
+  studentId: '',
+  studentName: '',
+  className: '',
+  facePhotoUrl: '',
+  syncStatus: '已同步',
+  updatedAt: ''
+})
 const scoreRows = ref<FitnessScoreSummaryRecord[]>(queryFitnessScoreSummary({}))
 const scoreProjectFilter = ref('')
 const scoreSourceFilter = ref('')
@@ -439,6 +630,7 @@ const activeMenu = computed(() => {
 const isAccountMenu = computed(() => activeMenu.value.id === ACCOUNT_MENU_ID)
 const isStudentMenu = computed(() => activeMenu.value.id === STUDENT_MENU_ID)
 const isScoreMenu = computed(() => activeMenu.value.id === SCORE_MENU_ID)
+const isDeviceMenu = computed(() => activeMenu.value.id === DEVICE_MENU_ID)
 const isVideoMenu = computed(() => activeMenu.value.id === VIDEO_MENU_ID)
 const hasRemotePagination = computed(() => isAccountMenu.value || isStudentMenu.value)
 const accountRoleOptions = FITNESS_ACCOUNT_ROLE_OPTIONS
@@ -451,6 +643,8 @@ const studentEditableGradeOptions = studentGradeOptions
 const studentEditableClassOptions = studentClassOptions
 const studentEditableFaceStatusOptions = studentFaceStatusOptions
 const studentEditableQualityOptions = studentQualityOptions
+const deviceTypeOptions = FITNESS_DEVICE_TYPE_OPTIONS
+const deviceStatusOptions = FITNESS_DEVICE_STATUS_OPTIONS
 const scoreProjectOptions = FITNESS_SCORE_PROJECT_OPTIONS
 const scoreSourceOptions = FITNESS_SCORE_SOURCE_OPTIONS
 const scoreStatusOptions = FITNESS_SCORE_STATUS_OPTIONS
@@ -473,14 +667,30 @@ const pagedScoreDetailRows = computed(() => {
 const displayStats = computed(() => {
   if (isStudentMenu.value) return getFitnessStudentMenuStats()
   if (isScoreMenu.value) return FITNESS_SCORE_STATS
+  if (isDeviceMenu.value) return getFitnessDeviceMenuStats()
   if (isVideoMenu.value) return FITNESS_VIDEO_STATS
   return activeMenu.value.stats
 })
 const displayHighlights = computed(() => {
   if (isStudentMenu.value) return FITNESS_STUDENT_HIGHLIGHTS
   if (isScoreMenu.value) return FITNESS_SCORE_HIGHLIGHTS
+  if (isDeviceMenu.value) return FITNESS_DEVICE_HIGHLIGHTS
   if (isVideoMenu.value) return FITNESS_VIDEO_HIGHLIGHTS
   return activeMenu.value.highlights
+})
+
+const deviceFilteredRows = computed(() => {
+  const keyword = searchKeyword.value.trim().toLowerCase()
+
+  if (!keyword) {
+    return deviceRows.value
+  }
+
+  return deviceRows.value.filter((item) => {
+    return [item.deviceName, item.ip, item.type, item.status, item.storage, item.location, item.secretKey].some((value) => {
+      return value.toLowerCase().includes(keyword)
+    })
+  })
 })
 
 const localFilteredRows = computed(() => {
@@ -511,6 +721,10 @@ const tableRows = computed(() => {
     return scoreRows.value
   }
 
+  if (isDeviceMenu.value) {
+    return deviceFilteredRows.value
+  }
+
   return localFilteredRows.value
 })
 
@@ -527,6 +741,10 @@ const totalRowCount = computed(() => {
     return FITNESS_SCORE_SUMMARY_RECORDS.length
   }
 
+  if (isDeviceMenu.value) {
+    return deviceRows.value.length
+  }
+
   return activeMenu.value.rows.length
 })
 
@@ -541,6 +759,10 @@ const filteredRowCount = computed(() => {
 
   if (isScoreMenu.value) {
     return scoreRows.value.length
+  }
+
+  if (isDeviceMenu.value) {
+    return deviceFilteredRows.value.length
   }
 
   return localFilteredRows.value.length
@@ -619,6 +841,10 @@ const loadScoreRows = () => {
   })
 }
 
+const loadDeviceRows = () => {
+  deviceRows.value = [...getFitnessDeviceRecords()]
+}
+
 const loadScoreDetailRows = () => {
   if (!scoreDetailBatchId.value) {
     scoreDetailRows.value = []
@@ -647,6 +873,11 @@ const refreshRemoteRows = () => {
 
   if (isScoreMenu.value) {
     loadScoreRows()
+    return
+  }
+
+  if (isDeviceMenu.value) {
+    loadDeviceRows()
   }
 }
 
@@ -670,6 +901,261 @@ const setAccountStatus = (row: FitnessAccountRecord, status: FitnessAccountStatu
 const openStudentEditor = (row: FitnessStudentRecord) => {
   studentEditForm.value = { ...row }
   studentEditorVisible.value = true
+}
+
+const openDeviceCreator = () => {
+  deviceDialogTitle.value = '新增设备'
+  deviceEditMode.value = 'create'
+  deviceEditForm.value = {
+    deviceId: '',
+    deviceName: '',
+    ip: '',
+    type: FITNESS_DEVICE_TYPE_OPTIONS[0],
+    status: FITNESS_DEVICE_STATUS_OPTIONS[0],
+    storage: '0%',
+    secretKey: '',
+    location: '',
+    actions: '管理'
+  }
+  deviceEditorVisible.value = true
+}
+
+const openDeviceEditor = (row: FitnessDeviceRecord) => {
+  deviceDialogTitle.value = '编辑设备'
+  deviceEditMode.value = 'edit'
+  deviceEditForm.value = { ...row }
+  deviceEditorVisible.value = true
+}
+
+const submitDeviceEdit = () => {
+  if (!deviceEditForm.value.deviceName.trim() || !deviceEditForm.value.ip.trim()) {
+    ElMessage.warning('请完整填写设备名称和 IP 地址')
+    return
+  }
+
+  if (deviceEditMode.value === 'create') {
+    createFitnessDevice({
+      deviceName: deviceEditForm.value.deviceName,
+      ip: deviceEditForm.value.ip,
+      type: deviceEditForm.value.type,
+      status: deviceEditForm.value.status,
+      storage: deviceEditForm.value.storage,
+      secretKey: deviceEditForm.value.secretKey,
+      location: deviceEditForm.value.location
+    })
+    ElMessage.success('设备已新增')
+  } else {
+    const updated = updateFitnessDevice({ ...deviceEditForm.value })
+
+    if (!updated) {
+      ElMessage.error('设备更新失败')
+      return
+    }
+
+    ElMessage.success('设备信息已更新')
+  }
+
+  loadDeviceRows()
+  deviceEditorVisible.value = false
+}
+
+const loadDeviceFaceRows = () => {
+  if (!currentDeviceFaceDeviceId.value) {
+    deviceFaceRows.value = []
+    deviceFaceTotal.value = 0
+    return
+  }
+
+  const { total, list } = queryFitnessDeviceFaces({
+    deviceId: currentDeviceFaceDeviceId.value,
+    keyword: deviceFaceKeyword.value,
+    page: deviceFacePage.value,
+    pageSize: deviceFacePageSize.value
+  })
+
+  deviceFaceRows.value = list
+  deviceFaceTotal.value = total
+}
+
+const openDeviceFaceManager = (row: FitnessDeviceRecord) => {
+  currentDeviceFaceDeviceId.value = row.deviceId
+  deviceFaceDialogTitle.value = `${row.deviceName} 人脸信息`
+  deviceFaceKeyword.value = ''
+  deviceFacePage.value = 1
+  deviceFacePageSize.value = 10
+  loadDeviceFaceRows()
+  deviceFaceVisible.value = true
+}
+
+const openDeviceFaceCreator = () => {
+  deviceFaceEditMode.value = 'create'
+  deviceFaceEditorTitle.value = '新增人脸'
+  deviceFaceEditForm.value = {
+    faceId: '',
+    studentId: '',
+    studentName: '',
+    className: '',
+    facePhotoUrl: '',
+    syncStatus: '已同步',
+    updatedAt: ''
+  }
+  deviceFaceEditorVisible.value = true
+}
+
+const openDeviceFaceEditor = (row: FitnessDeviceFaceRecord) => {
+  deviceFaceEditMode.value = 'edit'
+  deviceFaceEditorTitle.value = '编辑人脸'
+  deviceFaceEditForm.value = { ...row }
+  deviceFaceEditorVisible.value = true
+}
+
+const submitDeviceFaceEdit = () => {
+  if (!currentDeviceFaceDeviceId.value) {
+    return
+  }
+
+  if (
+    !deviceFaceEditForm.value.studentId.trim() ||
+    !deviceFaceEditForm.value.studentName.trim() ||
+    !deviceFaceEditForm.value.facePhotoUrl.trim()
+  ) {
+    ElMessage.warning('请完整填写学号、姓名和照片链接')
+    return
+  }
+
+  if (deviceFaceEditMode.value === 'create') {
+    createFitnessDeviceFace(currentDeviceFaceDeviceId.value, {
+      studentId: deviceFaceEditForm.value.studentId,
+      studentName: deviceFaceEditForm.value.studentName,
+      className: deviceFaceEditForm.value.className,
+      facePhotoUrl: deviceFaceEditForm.value.facePhotoUrl,
+      syncStatus: deviceFaceEditForm.value.syncStatus
+    })
+    ElMessage.success('设备人脸信息已新增')
+  } else {
+    const updated = updateFitnessDeviceFace(currentDeviceFaceDeviceId.value, { ...deviceFaceEditForm.value })
+
+    if (!updated) {
+      ElMessage.error('设备人脸信息更新失败')
+      return
+    }
+
+    ElMessage.success('设备人脸信息已更新')
+  }
+
+  loadDeviceFaceRows()
+  deviceFaceEditorVisible.value = false
+}
+
+const removeDeviceFace = async (row: FitnessDeviceFaceRecord) => {
+  if (!currentDeviceFaceDeviceId.value) {
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认删除 ${row.studentName} 的设备人脸信息吗？`, '删除提示', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+
+  const deleted = deleteFitnessDeviceFace(currentDeviceFaceDeviceId.value, row.faceId)
+
+  if (!deleted) {
+    ElMessage.error('删除失败，人脸记录不存在')
+    return
+  }
+
+  if (deviceFaceRows.value.length === 1 && deviceFacePage.value > 1) {
+    deviceFacePage.value -= 1
+  }
+
+  loadDeviceFaceRows()
+  ElMessage.success('设备人脸信息已删除')
+}
+
+const authorizeDevice = async (row: FitnessDeviceRecord) => {
+  let accessKey = ''
+
+  try {
+    const result = await ElMessageBox.prompt(`请输入 ${row.deviceName} 的访问密钥，鉴权成功后设备可通信。`, '设备鉴权', {
+      confirmButtonText: '开始鉴权',
+      cancelButtonText: '取消',
+      inputPlaceholder: '请输入访问密钥',
+      inputValidator: (value) => {
+        if (!value.trim()) {
+          return '访问密钥不能为空'
+        }
+
+        return true
+      }
+    })
+
+    accessKey = result.value
+  } catch {
+    return
+  }
+
+  const authResult = authenticateFitnessDevice(row.deviceId, accessKey)
+
+  if (!authResult.success) {
+    ElMessage.error(authResult.message)
+    return
+  }
+
+  loadDeviceRows()
+  ElMessage.success(authResult.message)
+}
+
+const syncDeviceStudents = async (row: FitnessDeviceRecord) => {
+  try {
+    await ElMessageBox.confirm(`确认将学生人脸信息同步至 ${row.deviceName} 吗？设备需先完成鉴权并建立通信。`, '同步人脸', {
+      confirmButtonText: '开始同步',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+
+  const syncResult = syncFitnessStudentsToDevice(row.deviceId)
+
+  if (!syncResult.success) {
+    ElMessage.error(syncResult.message)
+    return
+  }
+
+  if (currentDeviceFaceDeviceId.value === row.deviceId && deviceFaceVisible.value) {
+    deviceFacePage.value = 1
+    loadDeviceFaceRows()
+  }
+
+  ElMessage.success(syncResult.message)
+}
+
+const removeDevice = async (row: FitnessDeviceRecord) => {
+  try {
+    await ElMessageBox.confirm(`确认删除设备 ${row.deviceName} 吗？删除后不可恢复。`, '删除提示', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+
+  const deleted = deleteFitnessDevice(row.deviceId)
+
+  if (!deleted) {
+    ElMessage.error('删除失败，设备不存在')
+    return
+  }
+
+  loadDeviceRows()
+  ElMessage.success('设备已删除')
 }
 
 const openScoreDetail = (row: FitnessScoreSummaryRecord) => {
@@ -813,6 +1299,19 @@ watch([searchKeyword, studentGradeFilter, studentClassFilter, studentFaceStatusF
 watch([searchKeyword, scoreProjectFilter, scoreSourceFilter, scoreStatusFilter], () => {
   if (isScoreMenu.value) {
     loadScoreRows()
+  }
+})
+
+watch(deviceFaceKeyword, () => {
+  if (deviceFaceVisible.value) {
+    deviceFacePage.value = 1
+    loadDeviceFaceRows()
+  }
+})
+
+watch([deviceFacePage, deviceFacePageSize], () => {
+  if (deviceFaceVisible.value) {
+    loadDeviceFaceRows()
   }
 })
 

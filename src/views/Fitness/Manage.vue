@@ -88,6 +88,17 @@
                     <el-option v-for="item in studentQualityOptions" :key="item" :label="item" :value="item" />
                   </el-select>
                 </template>
+                <template v-if="isScoreMenu">
+                  <el-select v-model="scoreProjectFilter" placeholder="项目筛选" clearable class="fitness-filter-select">
+                    <el-option v-for="item in scoreProjectOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                  <el-select v-model="scoreSourceFilter" placeholder="来源筛选" clearable class="fitness-filter-select">
+                    <el-option v-for="item in scoreSourceOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                  <el-select v-model="scoreStatusFilter" placeholder="状态筛选" clearable class="fitness-filter-select">
+                    <el-option v-for="item in scoreStatusOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </template>
                 <el-button @click="resetSearch">重置</el-button>
               </div>
             </div>
@@ -130,6 +141,12 @@
                 <div v-else-if="isStudentMenu && column.prop === 'actions'" class="fitness-row-actions">
                   <el-button size="small" @click="openStudentEditor(scope.row)">编辑</el-button>
                   <el-button size="small" type="danger" plain @click="removeStudent(scope.row)">删除</el-button>
+                </div>
+                <div v-else-if="isScoreMenu && column.prop === 'actions'" class="fitness-row-actions">
+                  <el-button size="small" type="primary" plain @click="openScoreDetail(scope.row)">查看详情</el-button>
+                </div>
+                <div v-else-if="isVideoMenu && column.prop === 'actions'" class="fitness-row-actions">
+                  <el-button size="small" type="primary" plain @click="openVideoDetail(scope.row)">查看详情</el-button>
                 </div>
                 <span v-else>{{ scope.row[column.prop] }}</span>
               </template>
@@ -210,6 +227,83 @@
           </div>
         </template>
       </el-dialog>
+
+      <el-dialog v-model="scoreDetailVisible" :title="scoreDetailTitle" width="1080px">
+        <div class="fitness-detail-toolbar">
+          <el-input v-model="scoreDetailKeyword" placeholder="搜索学号、姓名、班级" clearable class="fitness-search-input" />
+          <el-select v-model="scoreDetailClassFilter" placeholder="班级筛选" clearable filterable class="fitness-filter-select fitness-filter-select-wide">
+            <el-option v-for="item in scoreDetailClassOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+          <el-select v-model="scoreDetailResultFilter" placeholder="等级筛选" clearable class="fitness-filter-select">
+            <el-option v-for="item in scoreDetailResultOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+          <el-select v-model="scoreDetailStatusFilter" placeholder="入库状态" clearable class="fitness-filter-select">
+            <el-option v-for="item in scoreDetailStatusOptions" :key="item" :label="item" :value="item" />
+          </el-select>
+        </div>
+
+        <el-table :data="pagedScoreDetailRows" border stripe class="fitness-data-table">
+          <el-table-column
+            v-for="column in scoreDetailColumns"
+            :key="column.prop"
+            :prop="column.prop"
+            :label="column.label"
+            :min-width="column.minWidth ?? 120"
+          />
+        </el-table>
+
+        <div class="fitness-pagination fitness-detail-pagination">
+          <el-pagination
+            v-model:current-page="scoreDetailPage"
+            v-model:page-size="scoreDetailPageSize"
+            background
+            layout="total, sizes, prev, pager, next"
+            :page-sizes="[10, 20, 50]"
+            :total="scoreDetailRows.length"
+          />
+        </div>
+      </el-dialog>
+
+      <el-dialog v-model="videoDetailVisible" :title="videoDetailTitle" width="980px">
+        <div v-if="currentVideoClip" class="fitness-video-player-panel">
+          <div class="fitness-video-player-meta">
+            <h4>{{ currentVideoClip.clipName }}</h4>
+            <p>{{ currentVideoClip.timeRange }} | {{ currentVideoClip.studentName }} | {{ currentVideoClip.project }}</p>
+          </div>
+          <video :src="currentVideoClip.videoUrl" controls preload="metadata" class="fitness-video-player"></video>
+        </div>
+
+        <el-table :data="videoDetailRows" border stripe class="fitness-data-table">
+          <el-table-column
+            v-for="column in videoDetailColumns"
+            :key="column.prop"
+            :prop="column.prop"
+            :label="column.label"
+            :min-width="column.minWidth ?? 120"
+          >
+            <template #default="scope">
+              <el-button
+                v-if="column.prop === 'clipName'"
+                link
+                type="primary"
+                @click="playVideoClip(scope.row)"
+              >
+                {{ scope.row.clipName }}
+              </el-button>
+              <el-button
+                v-else-if="column.prop === 'actions'"
+                size="small"
+                type="primary"
+                plain
+                @click="playVideoClip(scope.row)"
+              >
+                播放
+              </el-button>
+              <span v-else>{{ scope.row[column.prop] }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-dialog>
     </main>
   </section>
 </template>
@@ -247,10 +341,36 @@ import {
   updateFitnessStudent,
   type FitnessStudentRecord
 } from '@/mock/fitnessStudents'
+import {
+  FITNESS_SCORE_DETAIL_COLUMNS,
+  FITNESS_SCORE_DETAIL_RESULT_OPTIONS,
+  FITNESS_SCORE_DETAIL_STATUS_OPTIONS,
+  FITNESS_SCORE_PROJECT_OPTIONS,
+  FITNESS_SCORE_SOURCE_OPTIONS,
+  FITNESS_SCORE_STATUS_OPTIONS,
+  FITNESS_SCORE_SUMMARY_RECORDS,
+  FITNESS_SCORE_STATS,
+  FITNESS_SCORE_HIGHLIGHTS,
+  getFitnessScoreDetailClassOptions,
+  queryFitnessScoreDetails,
+  queryFitnessScoreSummary,
+  type FitnessScoreDetailRecord,
+  type FitnessScoreSummaryRecord
+} from '@/mock/fitnessScores'
+import {
+  FITNESS_VIDEO_DETAIL_COLUMNS,
+  FITNESS_VIDEO_HIGHLIGHTS,
+  FITNESS_VIDEO_STATS,
+  getFitnessVideoDetailRecords,
+  type FitnessVideoDetailRecord,
+  type FitnessVideoSummaryRecord
+} from '@/mock/fitnessVideos'
 
 const router = useRouter()
 const ACCOUNT_MENU_ID = 'accounts'
 const STUDENT_MENU_ID = 'students'
+const SCORE_MENU_ID = 'scores'
+const VIDEO_MENU_ID = 'videos'
 const activeMenuId = ref('dashboard')
 const searchKeyword = ref('')
 const currentPage = ref(1)
@@ -267,6 +387,24 @@ const studentClassFilter = ref('')
 const studentFaceStatusFilter = ref('')
 const studentQualityFilter = ref('')
 const studentEditorVisible = ref(false)
+const scoreRows = ref<FitnessScoreSummaryRecord[]>(queryFitnessScoreSummary({}))
+const scoreProjectFilter = ref('')
+const scoreSourceFilter = ref('')
+const scoreStatusFilter = ref('')
+const scoreDetailVisible = ref(false)
+const scoreDetailBatchId = ref('')
+const scoreDetailTitle = ref('成绩详情')
+const scoreDetailKeyword = ref('')
+const scoreDetailClassFilter = ref('')
+const scoreDetailResultFilter = ref('')
+const scoreDetailStatusFilter = ref('')
+const scoreDetailRows = ref<FitnessScoreDetailRecord[]>([])
+const scoreDetailPage = ref(1)
+const scoreDetailPageSize = ref(10)
+const videoDetailVisible = ref(false)
+const videoDetailTitle = ref('视频片段详情')
+const videoDetailRows = ref<FitnessVideoDetailRecord[]>([])
+const currentVideoClip = ref<FitnessVideoDetailRecord | null>(null)
 const studentEditForm = ref<FitnessStudentRecord>({
   studentId: '',
   studentName: '',
@@ -300,6 +438,8 @@ const activeMenu = computed(() => {
 
 const isAccountMenu = computed(() => activeMenu.value.id === ACCOUNT_MENU_ID)
 const isStudentMenu = computed(() => activeMenu.value.id === STUDENT_MENU_ID)
+const isScoreMenu = computed(() => activeMenu.value.id === SCORE_MENU_ID)
+const isVideoMenu = computed(() => activeMenu.value.id === VIDEO_MENU_ID)
 const hasRemotePagination = computed(() => isAccountMenu.value || isStudentMenu.value)
 const accountRoleOptions = FITNESS_ACCOUNT_ROLE_OPTIONS
 const accountStatusOptions = FITNESS_ACCOUNT_STATUS_OPTIONS
@@ -311,11 +451,36 @@ const studentEditableGradeOptions = studentGradeOptions
 const studentEditableClassOptions = studentClassOptions
 const studentEditableFaceStatusOptions = studentFaceStatusOptions
 const studentEditableQualityOptions = studentQualityOptions
+const scoreProjectOptions = FITNESS_SCORE_PROJECT_OPTIONS
+const scoreSourceOptions = FITNESS_SCORE_SOURCE_OPTIONS
+const scoreStatusOptions = FITNESS_SCORE_STATUS_OPTIONS
+const scoreDetailColumns = FITNESS_SCORE_DETAIL_COLUMNS
+const scoreDetailResultOptions = FITNESS_SCORE_DETAIL_RESULT_OPTIONS
+const scoreDetailStatusOptions = FITNESS_SCORE_DETAIL_STATUS_OPTIONS
+const videoDetailColumns = FITNESS_VIDEO_DETAIL_COLUMNS
+const scoreDetailClassOptions = computed(() => {
+  if (!scoreDetailBatchId.value) {
+    return []
+  }
+
+  return getFitnessScoreDetailClassOptions(scoreDetailBatchId.value)
+})
+const pagedScoreDetailRows = computed(() => {
+  const start = (scoreDetailPage.value - 1) * scoreDetailPageSize.value
+  const end = start + scoreDetailPageSize.value
+  return scoreDetailRows.value.slice(start, end)
+})
 const displayStats = computed(() => {
-  return isStudentMenu.value ? getFitnessStudentMenuStats() : activeMenu.value.stats
+  if (isStudentMenu.value) return getFitnessStudentMenuStats()
+  if (isScoreMenu.value) return FITNESS_SCORE_STATS
+  if (isVideoMenu.value) return FITNESS_VIDEO_STATS
+  return activeMenu.value.stats
 })
 const displayHighlights = computed(() => {
-  return isStudentMenu.value ? FITNESS_STUDENT_HIGHLIGHTS : activeMenu.value.highlights
+  if (isStudentMenu.value) return FITNESS_STUDENT_HIGHLIGHTS
+  if (isScoreMenu.value) return FITNESS_SCORE_HIGHLIGHTS
+  if (isVideoMenu.value) return FITNESS_VIDEO_HIGHLIGHTS
+  return activeMenu.value.highlights
 })
 
 const localFilteredRows = computed(() => {
@@ -342,6 +507,10 @@ const tableRows = computed(() => {
     return studentRows.value
   }
 
+  if (isScoreMenu.value) {
+    return scoreRows.value
+  }
+
   return localFilteredRows.value
 })
 
@@ -354,6 +523,10 @@ const totalRowCount = computed(() => {
     return getFitnessStudentStats().total
   }
 
+  if (isScoreMenu.value) {
+    return FITNESS_SCORE_SUMMARY_RECORDS.length
+  }
+
   return activeMenu.value.rows.length
 })
 
@@ -364,6 +537,10 @@ const filteredRowCount = computed(() => {
 
   if (isStudentMenu.value) {
     return studentTotal.value
+  }
+
+  if (isScoreMenu.value) {
+    return scoreRows.value.length
   }
 
   return localFilteredRows.value.length
@@ -385,6 +562,9 @@ const resetSearch = () => {
   studentClassFilter.value = ''
   studentFaceStatusFilter.value = ''
   studentQualityFilter.value = ''
+  scoreProjectFilter.value = ''
+  scoreSourceFilter.value = ''
+  scoreStatusFilter.value = ''
   currentPage.value = 1
 }
 
@@ -430,6 +610,30 @@ const loadStudentRows = () => {
   tableLoading.value = false
 }
 
+const loadScoreRows = () => {
+  scoreRows.value = queryFitnessScoreSummary({
+    keyword: searchKeyword.value,
+    project: scoreProjectFilter.value,
+    source: scoreSourceFilter.value,
+    status: scoreStatusFilter.value
+  })
+}
+
+const loadScoreDetailRows = () => {
+  if (!scoreDetailBatchId.value) {
+    scoreDetailRows.value = []
+    return
+  }
+
+  scoreDetailRows.value = queryFitnessScoreDetails({
+    batchId: scoreDetailBatchId.value,
+    keyword: scoreDetailKeyword.value,
+    className: scoreDetailClassFilter.value,
+    resultLevel: scoreDetailResultFilter.value,
+    scoreStatus: scoreDetailStatusFilter.value
+  })
+}
+
 const refreshRemoteRows = () => {
   if (isAccountMenu.value) {
     loadAccountRows()
@@ -438,6 +642,11 @@ const refreshRemoteRows = () => {
 
   if (isStudentMenu.value) {
     loadStudentRows()
+    return
+  }
+
+  if (isScoreMenu.value) {
+    loadScoreRows()
   }
 }
 
@@ -461,6 +670,30 @@ const setAccountStatus = (row: FitnessAccountRecord, status: FitnessAccountStatu
 const openStudentEditor = (row: FitnessStudentRecord) => {
   studentEditForm.value = { ...row }
   studentEditorVisible.value = true
+}
+
+const openScoreDetail = (row: FitnessScoreSummaryRecord) => {
+  scoreDetailBatchId.value = row.batchId
+  scoreDetailTitle.value = `${row.project} 明细`
+  scoreDetailKeyword.value = ''
+  scoreDetailClassFilter.value = ''
+  scoreDetailResultFilter.value = ''
+  scoreDetailStatusFilter.value = ''
+  scoreDetailPage.value = 1
+  scoreDetailPageSize.value = 10
+  loadScoreDetailRows()
+  scoreDetailVisible.value = true
+}
+
+const openVideoDetail = (row: FitnessVideoSummaryRecord) => {
+  videoDetailTitle.value = `${row.deviceName} 视频时段列表`
+  videoDetailRows.value = getFitnessVideoDetailRecords(row.videoId)
+  currentVideoClip.value = videoDetailRows.value[0] ?? null
+  videoDetailVisible.value = true
+}
+
+const playVideoClip = (row: FitnessVideoDetailRecord) => {
+  currentVideoClip.value = row
 }
 
 const handleStudentPhotoChange = (uploadFile: UploadFile) => {
@@ -555,6 +788,9 @@ watch(activeMenuId, () => {
   studentClassFilter.value = ''
   studentFaceStatusFilter.value = ''
   studentQualityFilter.value = ''
+  scoreProjectFilter.value = ''
+  scoreSourceFilter.value = ''
+  scoreStatusFilter.value = ''
   currentPage.value = 1
 
   refreshRemoteRows()
@@ -571,6 +807,19 @@ watch([searchKeyword, studentGradeFilter, studentClassFilter, studentFaceStatusF
   if (isStudentMenu.value) {
     currentPage.value = 1
     loadStudentRows()
+  }
+})
+
+watch([searchKeyword, scoreProjectFilter, scoreSourceFilter, scoreStatusFilter], () => {
+  if (isScoreMenu.value) {
+    loadScoreRows()
+  }
+})
+
+watch([scoreDetailKeyword, scoreDetailClassFilter, scoreDetailResultFilter, scoreDetailStatusFilter], () => {
+  if (scoreDetailVisible.value) {
+    scoreDetailPage.value = 1
+    loadScoreDetailRows()
   }
 })
 
@@ -813,6 +1062,13 @@ watch([currentPage, pageSize], () => {
   width: 180px;
 }
 
+.fitness-detail-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
 .fitness-data-table :deep(.el-table__cell) {
   padding-top: 12px;
   padding-bottom: 12px;
@@ -867,6 +1123,35 @@ watch([currentPage, pageSize], () => {
   justify-content: flex-end;
 }
 
+.fitness-video-player-panel {
+  margin-bottom: 18px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.fitness-video-player-meta h4 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.fitness-video-player-meta p {
+  margin: 8px 0 14px;
+  color: #64748b;
+}
+
+.fitness-video-player {
+  width: 100%;
+  max-height: 420px;
+  border-radius: 14px;
+  background: #000;
+}
+
+.fitness-detail-pagination {
+  margin-top: 16px;
+}
+
 .fitness-pagination {
   display: flex;
   justify-content: flex-end;
@@ -909,6 +1194,7 @@ watch([currentPage, pageSize], () => {
   }
 
   .fitness-upload-row,
+  .fitness-detail-toolbar,
   .fitness-row-actions,
   .fitness-status-actions {
     flex-wrap: wrap;

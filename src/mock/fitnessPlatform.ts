@@ -8,6 +8,18 @@ import {
   FITNESS_STUDENT_HIGHLIGHTS,
   getFitnessStudentMenuStats
 } from './fitnessStudents'
+import {
+  FITNESS_SCORE_COLUMNS,
+  FITNESS_SCORE_HIGHLIGHTS,
+  FITNESS_SCORE_STATS,
+  queryFitnessScoreSummary
+} from './fitnessScores'
+import {
+  FITNESS_VIDEO_COLUMNS,
+  FITNESS_VIDEO_HIGHLIGHTS,
+  FITNESS_VIDEO_STATS,
+  getFitnessVideoSummaryRecords
+} from './fitnessVideos'
 
 export type FitnessRole = 'admin' | 'teacher' | 'headTeacher' | 'student'
 
@@ -177,30 +189,10 @@ export const FITNESS_ADMIN_MENU_ITEMS: FitnessAdminMenuItem[] = [
     group: '业务中心',
     title: '训练成绩管理',
     description: '管理训练站自动回传成绩、表格导入成绩、异常成绩修正和统计汇总。',
-    stats: [
-      { label: '成绩累计', value: '10,284,119' },
-      { label: '今日新增', value: '48,296' },
-      { label: '导入任务', value: '26' },
-      { label: '异常待复核', value: '83' }
-    ],
-    highlights: [
-      '支持训练站自动回传与批量导入双通道。',
-      '支持异常成绩复核与修正留痕。',
-      '支持按项目、班级、时间范围统计。'
-    ],
-    columns: [
-      { prop: 'project', label: '训练项目', minWidth: 140 },
-      { prop: 'source', label: '数据来源', minWidth: 120 },
-      { prop: 'count', label: '记录数', minWidth: 120 },
-      { prop: 'status', label: '处理状态', minWidth: 120 },
-      { prop: 'updatedAt', label: '最近更新时间', minWidth: 180 }
-    ],
-    rows: [
-      { project: '50 米跑', source: '设备回传', count: '18,422', status: '正常', updatedAt: '2026-03-07 14:20' },
-      { project: '立定跳远', source: '设备回传', count: '12,008', status: '部分中断', updatedAt: '2026-03-07 14:18' },
-      { project: '仰卧起坐', source: '表格导入', count: '6,284', status: '待复核', updatedAt: '2026-03-07 13:52' },
-      { project: '肺活量', source: '设备回传', count: '11,582', status: '正常', updatedAt: '2026-03-07 14:19' }
-    ]
+    stats: FITNESS_SCORE_STATS,
+    highlights: FITNESS_SCORE_HIGHLIGHTS,
+    columns: [...FITNESS_SCORE_COLUMNS],
+    rows: []
   },
   {
     id: 'devices',
@@ -267,30 +259,10 @@ export const FITNESS_ADMIN_MENU_ITEMS: FitnessAdminMenuItem[] = [
     group: '业务中心',
     title: '视频与存储管理',
     description: '管理训练视频留存策略、空间占用、抽检视频锁定和归档清理。',
-    stats: [
-      { label: '已留存视频', value: '13,842 min' },
-      { label: '剩余可用', value: '1,158 min' },
-      { label: '待归档', value: '426 min' },
-      { label: '抽检锁定', value: '92 min' }
-    ],
-    highlights: [
-      '支持按学生、设备、项目定位训练视频。',
-      '支持容量预警和归档清理。',
-      '支持监管抽检视频锁定保留。'
-    ],
-    columns: [
-      { prop: 'zone', label: '区域', minWidth: 140 },
-      { prop: 'deviceName', label: '设备名称', minWidth: 150 },
-      { prop: 'duration', label: '视频时长', minWidth: 120 },
-      { prop: 'storage', label: '空间占用', minWidth: 120 },
-      { prop: 'status', label: '留存状态', minWidth: 120 }
-    ],
-    rows: [
-      { zone: '东操场', deviceName: '50 米跑 A-01', duration: '3,428 min', storage: '312 GB', status: '正常' },
-      { zone: '南校区', deviceName: '立定跳远 C-02', duration: '2,612 min', storage: '286 GB', status: '空间预警' },
-      { zone: '体育馆', deviceName: '仰卧起坐 B-03', duration: '2,945 min', storage: '244 GB', status: '正常' },
-      { zone: '综合馆', deviceName: '肺活量 D-05', duration: '2,164 min', storage: '198 GB', status: '待归档' }
-    ]
+    stats: FITNESS_VIDEO_STATS,
+    highlights: FITNESS_VIDEO_HIGHLIGHTS,
+    columns: [...FITNESS_VIDEO_COLUMNS],
+    rows: getFitnessVideoSummaryRecords()
   },
   {
     id: 'monitor',

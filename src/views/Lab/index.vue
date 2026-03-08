@@ -294,6 +294,194 @@
     </main>
   </section>
 
+  <section v-else-if="isDeviceAdmin" class="lab-device-page">
+    <aside class="lab-device-side">
+      <div class="lab-device-brand">
+        <p class="lab-device-kicker">Device Operations</p>
+        <h1>设备管理员工作台</h1>
+        <p>覆盖设备台账、维修工单、借还审核、盘点任务和报废捐赠等设备全生命周期管理。</p>
+      </div>
+
+      <div class="lab-device-user-card">
+        <span>当前登录</span>
+        <strong>{{ currentUserName }}</strong>
+        <em>{{ currentRoleLabel }}</em>
+      </div>
+
+      <el-menu :default-active="deviceAdminMenuId" class="lab-device-menu" @select="handleSelectDeviceAdminMenu">
+        <el-sub-menu v-for="group in deviceAdminMenuGroups" :key="group.name" :index="group.name">
+          <template #title>{{ group.name }}</template>
+          <el-menu-item v-for="item in group.items" :key="item.id" :index="item.id">
+            {{ item.title }}
+          </el-menu-item>
+        </el-sub-menu>
+      </el-menu>
+
+      <div class="lab-device-side-actions">
+        <el-button @click="goHome">返回首页</el-button>
+        <el-button type="danger" plain @click="logout">退出登录</el-button>
+      </div>
+    </aside>
+
+    <main class="lab-device-main">
+      <header class="lab-device-header">
+        <div>
+          <p class="lab-device-header-kicker">{{ activeDeviceAdminMenu.group }}</p>
+          <h2>{{ activeDeviceAdminMenu.title }}</h2>
+          <p class="lab-device-header-desc">{{ activeDeviceAdminMenu.description }}</p>
+        </div>
+      </header>
+
+      <section class="lab-device-stat-grid">
+        <article v-for="item in deviceAdminTopStats" :key="item.label" class="lab-device-stat-card">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+        </article>
+      </section>
+
+      <el-card class="lab-device-panel" shadow="never">
+        <template #header>
+          <div class="lab-device-panel-head">
+            <div>
+              <h3>{{ activeDeviceAdminMenu.title }}</h3>
+              <p>当前菜单共 {{ deviceAdminActiveRows.length }} 条 mock 数据，筛选后 {{ deviceAdminFilteredRows.length }} 条。</p>
+            </div>
+            <div class="lab-device-toolbar-actions">
+              <el-button v-if="deviceAdminMenuId === 'device-ledger'" type="primary" @click="openCreateDevice">
+                新增设备
+              </el-button>
+              <el-button @click="resetDeviceAdminFilters">重置</el-button>
+              <el-button type="primary" @click="applyDeviceAdminFilters">查询</el-button>
+            </div>
+          </div>
+        </template>
+
+        <el-form label-position="top" class="lab-device-filter-grid">
+          <el-form-item v-for="filter in activeDeviceAdminMenu.filters" :key="filter.key" :label="filter.label">
+            <el-input
+              v-if="filter.type === 'input'"
+              v-model="deviceAdminDraftFilters[filter.key]"
+              :placeholder="filter.placeholder || '请输入查询条件'"
+              clearable
+              @keyup.enter="applyDeviceAdminFilters"
+            />
+            <el-select
+              v-else-if="filter.type === 'select'"
+              v-model="deviceAdminDraftFilters[filter.key]"
+              :placeholder="filter.placeholder || `请选择${filter.label}`"
+              clearable
+            >
+              <el-option
+                v-for="option in filter.options || []"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
+            </el-select>
+            <el-date-picker
+              v-else
+              v-model="deviceAdminDraftFilters[filter.key]"
+              type="date"
+              value-format="YYYY-MM-DD"
+              format="YYYY-MM-DD"
+              placeholder="请选择日期"
+              clearable
+            />
+          </el-form-item>
+        </el-form>
+
+        <el-table :data="deviceAdminPagedRows" border stripe class="lab-device-table">
+          <el-table-column
+            v-for="column in activeDeviceAdminMenu.columns"
+            :key="column.prop"
+            :prop="column.prop"
+            :label="column.label"
+            :min-width="column.minWidth ?? 120"
+          >
+            <template #default="scope">
+              <span>{{ scope.row[column.prop] }}</span>
+            </template>
+          </el-table-column>
+
+          <el-table-column v-if="deviceAdminMenuId === 'device-ledger'" label="操作" fixed="right" min-width="240">
+            <template #default="scope">
+              <div class="lab-device-row-actions">
+                <el-button link type="primary" @click="openDeviceDetail(scope.row)">查看详情</el-button>
+                <el-button link @click="openEditDevice(scope.row)">编辑</el-button>
+                <el-button link type="danger" @click="deleteDeviceRow(scope.row)">删除</el-button>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column v-if="deviceAdminMenuId === 'borrow-audit'" label="操作" fixed="right" min-width="220">
+            <template #default="scope">
+              <div class="lab-device-row-actions">
+                <el-button
+                  link
+                  type="success"
+                  :disabled="scope.row.status !== '待审核'"
+                  @click="approveDeviceBorrow(scope.row)"
+                >
+                  通过
+                </el-button>
+                <el-button
+                  link
+                  type="danger"
+                  :disabled="scope.row.status !== '待审核'"
+                  @click="openDeviceBorrowReject(scope.row)"
+                >
+                  驳回
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column v-if="deviceAdminMenuId === 'maintenance-orders'" label="操作" fixed="right" min-width="260">
+            <template #default="scope">
+              <div class="lab-device-row-actions">
+                <el-button
+                  link
+                  type="primary"
+                  :disabled="scope.row.status !== '待派单'"
+                  @click="openAssignMaintenance(scope.row)"
+                >
+                  派单
+                </el-button>
+                <el-button
+                  link
+                  type="warning"
+                  :disabled="scope.row.status !== '维修中'"
+                  @click="completeMaintenance(scope.row)"
+                >
+                  完成维修
+                </el-button>
+                <el-button
+                  link
+                  type="success"
+                  :disabled="scope.row.status !== '待验收'"
+                  @click="acceptMaintenance(scope.row)"
+                >
+                  验收
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="lab-device-pagination">
+          <el-pagination
+            v-model:current-page="deviceAdminCurrentPage"
+            v-model:page-size="deviceAdminPageSize"
+            background
+            layout="total, sizes, prev, pager, next, jumper"
+            :page-sizes="[10, 20, 30, 50]"
+            :total="deviceAdminFilteredRows.length"
+          />
+        </div>
+      </el-card>
+    </main>
+  </section>
+
   <section v-else class="placeholder-page">
     <el-card class="placeholder-card">
       <div class="placeholder-badge-row">
@@ -347,21 +535,135 @@
       <el-button type="primary" @click="submitReservationReject">确认驳回</el-button>
     </template>
   </el-dialog>
+
+  <el-dialog v-model="deviceDetailVisible" title="设备详情" width="760px">
+    <el-descriptions v-if="deviceDetailRow" :column="2" border>
+      <el-descriptions-item label="资产编号">{{ deviceDetailRow.assetCode }}</el-descriptions-item>
+      <el-descriptions-item label="设备名称">{{ deviceDetailRow.deviceName }}</el-descriptions-item>
+      <el-descriptions-item label="设备类别">{{ deviceDetailRow.category }}</el-descriptions-item>
+      <el-descriptions-item label="品牌">{{ deviceDetailRow.brand }}</el-descriptions-item>
+      <el-descriptions-item label="型号">{{ deviceDetailRow.model }}</el-descriptions-item>
+      <el-descriptions-item label="所属实验室">{{ deviceDetailRow.labName }}</el-descriptions-item>
+      <el-descriptions-item label="保管人">{{ deviceDetailRow.keeper }}</el-descriptions-item>
+      <el-descriptions-item label="联网状态">{{ deviceDetailRow.networkStatus }}</el-descriptions-item>
+      <el-descriptions-item label="设备状态">{{ deviceDetailRow.status }}</el-descriptions-item>
+    </el-descriptions>
+  </el-dialog>
+
+  <el-dialog v-model="deviceEditorVisible" :title="deviceDialogTitle" width="760px">
+    <el-form label-position="top" class="lab-device-edit-grid">
+      <el-form-item label="资产编号" required>
+        <el-input v-model="deviceForm.assetCode" placeholder="请输入资产编号" />
+      </el-form-item>
+      <el-form-item label="设备名称" required>
+        <el-input v-model="deviceForm.deviceName" placeholder="请输入设备名称" />
+      </el-form-item>
+      <el-form-item label="设备类别">
+        <el-select v-model="deviceForm.category" placeholder="请选择设备类别">
+          <el-option label="数控设备" value="数控设备" />
+          <el-option label="电子测试设备" value="电子测试设备" />
+          <el-option label="护理实训设备" value="护理实训设备" />
+          <el-option label="汽车诊断设备" value="汽车诊断设备" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="品牌">
+        <el-input v-model="deviceForm.brand" placeholder="请输入品牌" />
+      </el-form-item>
+      <el-form-item label="型号">
+        <el-input v-model="deviceForm.model" placeholder="请输入型号" />
+      </el-form-item>
+      <el-form-item label="所属实验室">
+        <el-input v-model="deviceForm.labName" placeholder="请输入所属实验室" />
+      </el-form-item>
+      <el-form-item label="保管人">
+        <el-input v-model="deviceForm.keeper" placeholder="请输入保管人" />
+      </el-form-item>
+      <el-form-item label="联网状态">
+        <el-select v-model="deviceForm.networkStatus" placeholder="请选择联网状态">
+          <el-option label="在线" value="在线" />
+          <el-option label="离线" value="离线" />
+          <el-option label="维护模式" value="维护模式" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="设备状态">
+        <el-select v-model="deviceForm.status" placeholder="请选择设备状态">
+          <el-option label="在用" value="在用" />
+          <el-option label="待维修" value="待维修" />
+          <el-option label="封存" value="封存" />
+          <el-option label="报废审批中" value="报废审批中" />
+        </el-select>
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="deviceEditorVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitDeviceForm">保存</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="deviceBorrowRejectVisible" title="驳回设备借还申请" width="520px">
+    <el-form label-position="top">
+      <el-form-item label="驳回原因" required>
+        <el-input
+          v-model="deviceBorrowRejectReason"
+          type="textarea"
+          :rows="4"
+          maxlength="120"
+          show-word-limit
+          placeholder="请输入驳回原因"
+        />
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="deviceBorrowRejectVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitDeviceBorrowReject">确认驳回</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="deviceMaintenanceAssignVisible" title="维修工单派单" width="580px">
+    <el-form label-position="top">
+      <el-form-item label="服务厂商" required>
+        <el-select v-model="deviceMaintenanceAssignForm.vendor" placeholder="请选择服务厂商">
+          <el-option label="西门子华东服务中心" value="西门子华东服务中心" />
+          <el-option label="安捷伦授权商" value="安捷伦授权商" />
+          <el-option label="迈瑞售后团队" value="迈瑞售后团队" />
+          <el-option label="校内运维组" value="校内运维组" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="维修工程师" required>
+        <el-input v-model="deviceMaintenanceAssignForm.engineer" placeholder="请输入维修工程师姓名" />
+      </el-form-item>
+      <el-form-item label="计划到场时间">
+        <el-input v-model="deviceMaintenanceAssignForm.planTime" placeholder="例如 2026-03-09 09:00" />
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="deviceMaintenanceAssignVisible = false">取消</el-button>
+      <el-button type="primary" @click="submitAssignMaintenance">确认派单</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import {
+  LAB_DEVICE_MANAGER_MENU_ROWS,
+  LAB_DEVICE_MANAGER_MENUS,
+  LAB_DEVICE_MANAGER_STATS,
   LAB_MENU_ROWS,
   LAB_MANAGER_MENU_ROWS,
   LAB_MANAGER_MENUS,
   LAB_MANAGER_STATS,
   LAB_SYSTEM_ADMIN_MENUS,
   LAB_SYSTEM_STATS,
+  getLabDeviceManagerMenuById,
   getLabManagerMenuById,
   getLabMenuById,
+  type LabDeviceManagerMenuId,
   type LabManagerMenuId,
   type LabMenuId
 } from '@/mock/labPlatform'
@@ -373,6 +675,7 @@ const currentRoleLabel = computed(() => sessionStorage.getItem('lab_role_label')
 const currentUserName = computed(() => sessionStorage.getItem('lab_name') || '未登录用户')
 const isSystemAdmin = computed(() => currentRole.value === 'system-admin')
 const isLabAdmin = computed(() => currentRole.value === 'lab-admin')
+const isDeviceAdmin = computed(() => currentRole.value === 'device-admin')
 
 const activeMenuId = ref<LabMenuId>('user-permission')
 const draftFilters = reactive<Record<string, string>>({})
@@ -405,9 +708,48 @@ const labAdminMenuRowsState = reactive(
     ])
   ) as Record<LabManagerMenuId, Record<string, string | number>[]>
 )
+const deviceAdminMenuId = ref<LabDeviceManagerMenuId>('device-ledger')
+const deviceAdminDraftFilters = reactive<Record<string, string>>({})
+const deviceAdminAppliedFilters = reactive<Record<string, string>>({})
+const deviceAdminCurrentPage = ref(1)
+const deviceAdminPageSize = ref(10)
+const deviceDetailVisible = ref(false)
+const deviceEditorVisible = ref(false)
+const deviceEditorMode = ref<'create' | 'edit'>('create')
+const deviceBorrowRejectVisible = ref(false)
+const deviceMaintenanceAssignVisible = ref(false)
+const deviceDetailRow = ref<Record<string, string | number> | null>(null)
+const deviceBorrowPendingRow = ref<Record<string, string | number> | null>(null)
+const deviceMaintenancePendingRow = ref<Record<string, string | number> | null>(null)
+const deviceBorrowRejectReason = ref('')
+const deviceForm = reactive({
+  assetCode: '',
+  deviceName: '',
+  category: '',
+  brand: '',
+  model: '',
+  labName: '',
+  keeper: '',
+  networkStatus: '',
+  status: ''
+})
+const deviceMaintenanceAssignForm = reactive({
+  vendor: '',
+  engineer: '',
+  planTime: ''
+})
+const deviceAdminMenuRowsState = reactive(
+  Object.fromEntries(
+    Object.entries(LAB_DEVICE_MANAGER_MENU_ROWS).map(([key, rows]) => [
+      key,
+      rows.map((row) => ({ ...row }))
+    ])
+  ) as Record<LabDeviceManagerMenuId, Record<string, string | number>[]>
+)
 
 const activeMenu = computed(() => getLabMenuById(activeMenuId.value))
 const activeLabAdminMenu = computed(() => getLabManagerMenuById(labAdminMenuId.value))
+const activeDeviceAdminMenu = computed(() => getLabDeviceManagerMenuById(deviceAdminMenuId.value))
 
 const menuGroups = computed(() => {
   const groupMap = new Map<string, typeof LAB_SYSTEM_ADMIN_MENUS>()
@@ -424,6 +766,7 @@ const menuGroups = computed(() => {
 
 const activeRows = computed(() => menuRowsState[activeMenuId.value] ?? [])
 const labAdminActiveRows = computed(() => labAdminMenuRowsState[labAdminMenuId.value] ?? [])
+const deviceAdminActiveRows = computed(() => deviceAdminMenuRowsState[deviceAdminMenuId.value] ?? [])
 
 const filteredRows = computed(() => {
   return activeRows.value.filter((row) => {
@@ -469,6 +812,28 @@ const labAdminFilteredRows = computed(() => {
   })
 })
 
+const deviceAdminFilteredRows = computed(() => {
+  return deviceAdminActiveRows.value.filter((row) => {
+    return activeDeviceAdminMenu.value.filters.every((filter) => {
+      const keyword = (deviceAdminAppliedFilters[filter.key] ?? '').trim()
+      if (!keyword) {
+        return true
+      }
+
+      if (filter.key === 'keyword') {
+        return Object.values(row).some((value) => String(value).includes(keyword))
+      }
+
+      const targetValue = String(row[filter.key] ?? '')
+      if (filter.type === 'date') {
+        return targetValue.startsWith(keyword)
+      }
+
+      return targetValue.includes(keyword)
+    })
+  })
+})
+
 const pagedRows = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
@@ -479,6 +844,12 @@ const labAdminPagedRows = computed(() => {
   const start = (labAdminCurrentPage.value - 1) * labAdminPageSize.value
   const end = start + labAdminPageSize.value
   return labAdminFilteredRows.value.slice(start, end)
+})
+
+const deviceAdminPagedRows = computed(() => {
+  const start = (deviceAdminCurrentPage.value - 1) * deviceAdminPageSize.value
+  const end = start + deviceAdminPageSize.value
+  return deviceAdminFilteredRows.value.slice(start, end)
 })
 
 const topStats = computed(() => {
@@ -532,6 +903,32 @@ const labAdminTopStats = computed(() => {
   return LAB_MANAGER_STATS
 })
 
+const deviceAdminTopStats = computed(() => {
+  if (deviceAdminMenuId.value === 'maintenance-orders') {
+    return [
+      { label: '待派单', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '待派单').length}` },
+      { label: '维修中', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '维修中').length}` },
+      { label: '待验收', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '待验收').length}` },
+      { label: '已完成', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '已完成').length}` }
+    ]
+  }
+
+  if (deviceAdminMenuId.value === 'borrow-audit') {
+    return [
+      { label: '待审核', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '待审核').length}` },
+      { label: '已通过', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '已通过').length}` },
+      { label: '已驳回', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '已驳回').length}` },
+      { label: '已归档', value: `${deviceAdminFilteredRows.value.filter((item) => item.status === '已归档').length}` }
+    ]
+  }
+
+  return LAB_DEVICE_MANAGER_STATS
+})
+
+const deviceDialogTitle = computed(() => {
+  return deviceEditorMode.value === 'create' ? '新增设备' : '编辑设备'
+})
+
 const resetFilterState = () => {
   for (const key of Object.keys(draftFilters)) {
     delete draftFilters[key]
@@ -566,6 +963,23 @@ const resetLabAdminFilterState = () => {
   labAdminCurrentPage.value = 1
 }
 
+const resetDeviceAdminFilterState = () => {
+  for (const key of Object.keys(deviceAdminDraftFilters)) {
+    delete deviceAdminDraftFilters[key]
+  }
+
+  for (const key of Object.keys(deviceAdminAppliedFilters)) {
+    delete deviceAdminAppliedFilters[key]
+  }
+
+  for (const filter of activeDeviceAdminMenu.value.filters) {
+    deviceAdminDraftFilters[filter.key] = ''
+    deviceAdminAppliedFilters[filter.key] = ''
+  }
+
+  deviceAdminCurrentPage.value = 1
+}
+
 const applyFilters = () => {
   for (const filter of activeMenu.value.filters) {
     appliedFilters[filter.key] = draftFilters[filter.key] ?? ''
@@ -580,12 +994,23 @@ const applyLabAdminFilters = () => {
   labAdminCurrentPage.value = 1
 }
 
+const applyDeviceAdminFilters = () => {
+  for (const filter of activeDeviceAdminMenu.value.filters) {
+    deviceAdminAppliedFilters[filter.key] = deviceAdminDraftFilters[filter.key] ?? ''
+  }
+  deviceAdminCurrentPage.value = 1
+}
+
 const resetFilters = () => {
   resetFilterState()
 }
 
 const resetLabAdminFilters = () => {
   resetLabAdminFilterState()
+}
+
+const resetDeviceAdminFilters = () => {
+  resetDeviceAdminFilterState()
 }
 
 const handleSelectMenu = (index: string) => {
@@ -605,8 +1030,186 @@ const labAdminMenuGroups = computed(() => {
   return Array.from(groupMap.entries()).map(([name, items]) => ({ name, items }))
 })
 
+const deviceAdminMenuGroups = computed(() => {
+  const groupMap = new Map<string, typeof LAB_DEVICE_MANAGER_MENUS>()
+
+  for (const item of LAB_DEVICE_MANAGER_MENUS) {
+    if (!groupMap.has(item.group)) {
+      groupMap.set(item.group, [])
+    }
+    groupMap.get(item.group)?.push(item)
+  }
+
+  return Array.from(groupMap.entries()).map(([name, items]) => ({ name, items }))
+})
+
 const handleSelectLabAdminMenu = (index: string) => {
   labAdminMenuId.value = index as LabManagerMenuId
+}
+
+const handleSelectDeviceAdminMenu = (index: string) => {
+  deviceAdminMenuId.value = index as LabDeviceManagerMenuId
+}
+
+const openDeviceDetail = (row: Record<string, string | number>) => {
+  deviceDetailRow.value = row
+  deviceDetailVisible.value = true
+}
+
+const fillDeviceForm = (row?: Record<string, string | number>) => {
+  deviceForm.assetCode = String(row?.assetCode ?? '')
+  deviceForm.deviceName = String(row?.deviceName ?? '')
+  deviceForm.category = String(row?.category ?? '')
+  deviceForm.brand = String(row?.brand ?? '')
+  deviceForm.model = String(row?.model ?? '')
+  deviceForm.labName = String(row?.labName ?? '')
+  deviceForm.keeper = String(row?.keeper ?? '')
+  deviceForm.networkStatus = String(row?.networkStatus ?? '在线')
+  deviceForm.status = String(row?.status ?? '在用')
+}
+
+const openCreateDevice = () => {
+  deviceEditorMode.value = 'create'
+  deviceDetailRow.value = null
+  fillDeviceForm()
+  deviceEditorVisible.value = true
+}
+
+const openEditDevice = (row: Record<string, string | number>) => {
+  deviceEditorMode.value = 'edit'
+  deviceDetailRow.value = row
+  fillDeviceForm(row)
+  deviceEditorVisible.value = true
+}
+
+const submitDeviceForm = () => {
+  if (!deviceForm.assetCode.trim() || !deviceForm.deviceName.trim()) {
+    ElMessage.warning('请填写设备编号和设备名称')
+    return
+  }
+
+  const payload = {
+    assetCode: deviceForm.assetCode.trim(),
+    deviceName: deviceForm.deviceName.trim(),
+    category: deviceForm.category.trim(),
+    brand: deviceForm.brand.trim(),
+    model: deviceForm.model.trim(),
+    labName: deviceForm.labName.trim(),
+    keeper: deviceForm.keeper.trim(),
+    networkStatus: deviceForm.networkStatus.trim(),
+    status: deviceForm.status.trim()
+  }
+
+  const rows = deviceAdminMenuRowsState['device-ledger']
+
+  if (deviceEditorMode.value === 'create') {
+    rows.unshift(payload)
+    ElMessage.success('设备已新增')
+  } else if (deviceDetailRow.value) {
+    Object.assign(deviceDetailRow.value, payload)
+    ElMessage.success('设备信息已更新')
+  }
+
+  deviceEditorVisible.value = false
+}
+
+const deleteDeviceRow = async (row: Record<string, string | number>) => {
+  await ElMessageBox.confirm(`确认删除设备 ${row.deviceName} 吗？`, '删除确认', {
+    type: 'warning'
+  })
+
+  const rows = deviceAdminMenuRowsState['device-ledger']
+  const index = rows.indexOf(row)
+  if (index >= 0) {
+    rows.splice(index, 1)
+    ElMessage.success('设备已删除')
+  }
+}
+
+const approveDeviceBorrow = (row: Record<string, string | number>) => {
+  if (deviceAdminMenuId.value !== 'borrow-audit' || row.status !== '待审核') {
+    return
+  }
+
+  row.status = '已通过'
+  row.reviewer = currentUserName.value
+  row.rejectReason = ''
+  ElMessage.success('设备借还申请已通过')
+}
+
+const openDeviceBorrowReject = (row: Record<string, string | number>) => {
+  if (deviceAdminMenuId.value !== 'borrow-audit' || row.status !== '待审核') {
+    return
+  }
+
+  deviceBorrowPendingRow.value = row
+  deviceBorrowRejectReason.value = ''
+  deviceBorrowRejectVisible.value = true
+}
+
+const submitDeviceBorrowReject = () => {
+  if (!deviceBorrowPendingRow.value) {
+    return
+  }
+
+  if (!deviceBorrowRejectReason.value.trim()) {
+    ElMessage.warning('请输入驳回原因')
+    return
+  }
+
+  deviceBorrowPendingRow.value.status = '已驳回'
+  deviceBorrowPendingRow.value.reviewer = currentUserName.value
+  deviceBorrowPendingRow.value.rejectReason = deviceBorrowRejectReason.value.trim()
+  deviceBorrowRejectVisible.value = false
+  ElMessage.success('设备借还申请已驳回')
+}
+
+const openAssignMaintenance = (row: Record<string, string | number>) => {
+  if (deviceAdminMenuId.value !== 'maintenance-orders' || row.status !== '待派单') {
+    return
+  }
+
+  deviceMaintenancePendingRow.value = row
+  deviceMaintenanceAssignForm.vendor = String(row.vendor || '')
+  deviceMaintenanceAssignForm.engineer = ''
+  deviceMaintenanceAssignForm.planTime = ''
+  deviceMaintenanceAssignVisible.value = true
+}
+
+const submitAssignMaintenance = () => {
+  if (!deviceMaintenancePendingRow.value) {
+    return
+  }
+
+  if (!deviceMaintenanceAssignForm.vendor.trim() || !deviceMaintenanceAssignForm.engineer.trim()) {
+    ElMessage.warning('请选择服务厂商并填写维修工程师')
+    return
+  }
+
+  deviceMaintenancePendingRow.value.vendor = deviceMaintenanceAssignForm.vendor.trim()
+  deviceMaintenancePendingRow.value.engineer = deviceMaintenanceAssignForm.engineer.trim()
+  deviceMaintenancePendingRow.value.planTime = deviceMaintenanceAssignForm.planTime.trim() || '-'
+  deviceMaintenancePendingRow.value.status = '维修中'
+  deviceMaintenanceAssignVisible.value = false
+  ElMessage.success('维修工单已派单')
+}
+
+const completeMaintenance = (row: Record<string, string | number>) => {
+  if (deviceAdminMenuId.value !== 'maintenance-orders' || row.status !== '维修中') {
+    return
+  }
+
+  row.status = '待验收'
+  ElMessage.success('维修工单已标记为待验收')
+}
+
+const acceptMaintenance = (row: Record<string, string | number>) => {
+  if (deviceAdminMenuId.value !== 'maintenance-orders' || row.status !== '待验收') {
+    return
+  }
+
+  row.status = '已完成'
+  ElMessage.success('维修工单已验收完成')
 }
 
 const openReservationDetail = (row: Record<string, string | number>) => {
@@ -691,6 +1294,14 @@ watch(
 )
 
 watch(
+  () => deviceAdminMenuId.value,
+  () => {
+    resetDeviceAdminFilterState()
+  },
+  { immediate: true }
+)
+
+watch(
   () => filteredRows.value.length,
   (length) => {
     const maxPage = Math.max(1, Math.ceil(length / pageSize.value))
@@ -711,6 +1322,16 @@ watch(
 )
 
 watch(
+  () => deviceAdminFilteredRows.value.length,
+  (length) => {
+    const maxPage = Math.max(1, Math.ceil(length / deviceAdminPageSize.value))
+    if (deviceAdminCurrentPage.value > maxPage) {
+      deviceAdminCurrentPage.value = maxPage
+    }
+  }
+)
+
+watch(
   () => pageSize.value,
   () => {
     currentPage.value = 1
@@ -721,6 +1342,13 @@ watch(
   () => labAdminPageSize.value,
   () => {
     labAdminCurrentPage.value = 1
+  }
+)
+
+watch(
+  () => deviceAdminPageSize.value,
+  () => {
+    deviceAdminCurrentPage.value = 1
   }
 )
 </script>
@@ -1134,6 +1762,216 @@ watch(
   margin-top: 20px;
 }
 
+.lab-device-page {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: calc(100vh - 96px);
+  gap: 22px;
+}
+
+.lab-device-side {
+  padding: 24px 20px;
+  border-radius: 24px;
+  color: #fefce8;
+  background:
+    radial-gradient(circle at top, rgba(251, 191, 36, 0.22), transparent 36%),
+    linear-gradient(180deg, #92400e 0%, #78350f 100%);
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
+}
+
+.lab-device-kicker {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.lab-device-brand h1 {
+  margin-top: 18px;
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.lab-device-brand p:last-child {
+  margin-top: 10px;
+  line-height: 1.75;
+  color: rgba(254, 252, 232, 0.9);
+}
+
+.lab-device-user-card {
+  display: grid;
+  gap: 6px;
+  margin-top: 24px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lab-device-user-card span,
+.lab-device-user-card em {
+  font-size: 13px;
+  color: rgba(254, 252, 232, 0.88);
+}
+
+.lab-device-user-card strong {
+  font-size: 18px;
+}
+
+.lab-device-menu {
+  margin-top: 20px;
+  border: none;
+  background: transparent;
+}
+
+.lab-device-menu :deep(.el-menu),
+.lab-device-menu :deep(.el-sub-menu .el-menu) {
+  background: transparent;
+}
+
+.lab-device-menu :deep(.el-sub-menu__title),
+.lab-device-menu :deep(.el-menu-item) {
+  color: rgba(255, 251, 235, 0.96);
+}
+
+.lab-device-menu :deep(.el-sub-menu .el-menu-item) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lab-device-menu :deep(.el-menu-item.is-active) {
+  color: #451a03;
+  background: rgba(255, 251, 235, 0.94);
+  border-radius: 12px;
+}
+
+.lab-device-menu :deep(.el-sub-menu__title:hover),
+.lab-device-menu :deep(.el-menu-item:hover) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.lab-device-side-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.lab-device-main {
+  min-width: 0;
+}
+
+.lab-device-header {
+  padding: 26px 28px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(255, 247, 237, 0.86));
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.lab-device-header-kicker {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #b45309;
+}
+
+.lab-device-header h2 {
+  margin-top: 8px;
+  font-size: 30px;
+  color: #0f172a;
+}
+
+.lab-device-header-desc {
+  margin-top: 8px;
+  color: #475569;
+}
+
+.lab-device-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.lab-device-stat-card {
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+.lab-device-stat-card span {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.lab-device-stat-card strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.lab-device-panel {
+  margin-top: 18px;
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+}
+
+.lab-device-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.lab-device-panel-head h3 {
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.lab-device-panel-head p {
+  margin-top: 6px;
+  color: #64748b;
+}
+
+.lab-device-toolbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.lab-device-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 16px;
+  margin-bottom: 14px;
+}
+
+.lab-device-table {
+  width: 100%;
+}
+
+.lab-device-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lab-device-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.lab-device-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
 .placeholder-page {
   display: grid;
   place-items: center;
@@ -1201,10 +2039,16 @@ watch(
     grid-template-columns: 1fr;
   }
 
+  .lab-device-page {
+    grid-template-columns: 1fr;
+  }
+
   .lab-stat-grid,
   .lab-filter-grid,
   .lab-role-stat-grid,
-  .lab-role-filter-grid {
+  .lab-role-filter-grid,
+  .lab-device-stat-grid,
+  .lab-device-filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1213,20 +2057,29 @@ watch(
   .lab-stat-grid,
   .lab-filter-grid,
   .lab-role-stat-grid,
-  .lab-role-filter-grid {
+  .lab-role-filter-grid,
+  .lab-device-stat-grid,
+  .lab-device-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lab-device-edit-grid {
     grid-template-columns: 1fr;
   }
 
   .lab-panel-head,
   .lab-toolbar-actions,
   .lab-role-panel-head,
-  .lab-role-toolbar-actions {
+  .lab-role-toolbar-actions,
+  .lab-device-panel-head,
+  .lab-device-toolbar-actions {
     flex-direction: column;
     align-items: stretch;
   }
 
   .lab-pagination,
-  .lab-role-pagination {
+  .lab-role-pagination,
+  .lab-device-pagination {
     justify-content: center;
   }
 }

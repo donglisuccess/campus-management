@@ -14,6 +14,13 @@ export type LabManagerMenuId =
   | 'inspection-tasks'
   | 'usage-analysis'
 
+export type LabDeviceManagerMenuId =
+  | 'device-ledger'
+  | 'maintenance-orders'
+  | 'borrow-audit'
+  | 'inventory-check'
+  | 'scrap-donation'
+
 export interface LabSelectOption {
   label: string
   value: string
@@ -915,4 +922,314 @@ export const LAB_MANAGER_STATS: LabStatCard[] = [
 
 export const getLabManagerMenuById = (menuId: LabManagerMenuId) => {
   return LAB_MANAGER_MENUS.find((item) => item.id === menuId) ?? LAB_MANAGER_MENUS[0]
+}
+
+export const LAB_DEVICE_MANAGER_MENUS: Array<LabMenuConfig & { id: LabDeviceManagerMenuId }> = [
+  {
+    id: 'device-ledger',
+    group: '设备台账',
+    title: '设备总台账',
+    description: '统一查看设备资产编号、存放位置、保管人和在线状态等信息。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索资产编号、设备名称、品牌型号' },
+      {
+        key: 'category',
+        label: '设备类别',
+        type: 'select',
+        options: [
+          { label: '数控设备', value: '数控设备' },
+          { label: '电子测试设备', value: '电子测试设备' },
+          { label: '护理实训设备', value: '护理实训设备' },
+          { label: '汽车诊断设备', value: '汽车诊断设备' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '设备状态',
+        type: 'select',
+        options: [
+          { label: '在用', value: '在用' },
+          { label: '待维修', value: '待维修' },
+          { label: '封存', value: '封存' },
+          { label: '报废审批中', value: '报废审批中' }
+        ]
+      },
+      {
+        key: 'labName',
+        label: '所属实验室',
+        type: 'select',
+        options: [
+          { label: '智能制造产线1室', value: '智能制造产线1室' },
+          { label: '电子焊接2室', value: '电子焊接2室' },
+          { label: '护理综合3室', value: '护理综合3室' },
+          { label: '新能源汽车检修4室', value: '新能源汽车检修4室' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'assetCode', label: '资产编号', minWidth: 140 },
+      { prop: 'deviceName', label: '设备名称', minWidth: 180 },
+      { prop: 'category', label: '类别', minWidth: 130 },
+      { prop: 'brand', label: '品牌', minWidth: 110 },
+      { prop: 'model', label: '型号', minWidth: 140 },
+      { prop: 'labName', label: '所属实验室', minWidth: 180 },
+      { prop: 'keeper', label: '保管人', minWidth: 110 },
+      { prop: 'networkStatus', label: '联网状态', minWidth: 110 },
+      { prop: 'status', label: '设备状态', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'maintenance-orders',
+    group: '运维管理',
+    title: '设备维修工单',
+    description: '跟踪设备报修、维修进度、服务厂商与验收结果。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索工单号、设备名称、报修人' },
+      {
+        key: 'priority',
+        label: '优先级',
+        type: 'select',
+        options: [
+          { label: '高', value: '高' },
+          { label: '中', value: '中' },
+          { label: '低', value: '低' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '工单状态',
+        type: 'select',
+        options: [
+          { label: '待派单', value: '待派单' },
+          { label: '维修中', value: '维修中' },
+          { label: '待验收', value: '待验收' },
+          { label: '已完成', value: '已完成' }
+        ]
+      },
+      { key: 'reportDate', label: '报修日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'orderNo', label: '工单号', minWidth: 150 },
+      { prop: 'deviceName', label: '设备名称', minWidth: 180 },
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'reporter', label: '报修人', minWidth: 110 },
+      { prop: 'faultType', label: '故障类型', minWidth: 140 },
+      { prop: 'priority', label: '优先级', minWidth: 90 },
+      { prop: 'vendor', label: '服务厂商', minWidth: 150 },
+      { prop: 'status', label: '工单状态', minWidth: 110 },
+      { prop: 'reportTime', label: '报修时间', minWidth: 170 }
+    ]
+  },
+  {
+    id: 'borrow-audit',
+    group: '运维管理',
+    title: '设备借还审核',
+    description: '处理设备借用、归还、逾期和损坏确认等审核业务。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索单号、申请人、设备名称' },
+      {
+        key: 'bizType',
+        label: '业务类型',
+        type: 'select',
+        options: [
+          { label: '借用申请', value: '借用申请' },
+          { label: '归还确认', value: '归还确认' },
+          { label: '损坏认定', value: '损坏认定' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '审核状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' },
+          { label: '已归档', value: '已归档' }
+        ]
+      },
+      { key: 'applyDate', label: '申请日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'borrowNo', label: '单号', minWidth: 150 },
+      { prop: 'bizType', label: '业务类型', minWidth: 120 },
+      { prop: 'deviceName', label: '设备名称', minWidth: 180 },
+      { prop: 'applicant', label: '申请人', minWidth: 110 },
+      { prop: 'department', label: '所属部门', minWidth: 140 },
+      { prop: 'applyDate', label: '申请日期', minWidth: 120 },
+      { prop: 'expectedReturnDate', label: '应归还日期', minWidth: 120 },
+      { prop: 'status', label: '审核状态', minWidth: 110 },
+      { prop: 'reviewer', label: '审核人', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'inventory-check',
+    group: '盘点管理',
+    title: '设备盘点任务',
+    description: '查看盘点批次、盘亏盘盈结果与差异处理进度。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索盘点批次、实验室、责任人' },
+      {
+        key: 'inventoryScope',
+        label: '盘点范围',
+        type: 'select',
+        options: [
+          { label: '全量盘点', value: '全量盘点' },
+          { label: '专项盘点', value: '专项盘点' },
+          { label: '抽样盘点', value: '抽样盘点' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '盘点状态',
+        type: 'select',
+        options: [
+          { label: '未开始', value: '未开始' },
+          { label: '进行中', value: '进行中' },
+          { label: '待处理', value: '待处理' },
+          { label: '已完成', value: '已完成' }
+        ]
+      },
+      { key: 'planDate', label: '盘点日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'inventoryNo', label: '盘点批次', minWidth: 150 },
+      { prop: 'inventoryScope', label: '盘点范围', minWidth: 120 },
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'manager', label: '责任人', minWidth: 110 },
+      { prop: 'planDate', label: '计划日期', minWidth: 120 },
+      { prop: 'deviceCount', label: '设备数', minWidth: 90 },
+      { prop: 'diffCount', label: '差异数', minWidth: 90 },
+      { prop: 'status', label: '盘点状态', minWidth: 110 },
+      { prop: 'reportTime', label: '提交时间', minWidth: 170 }
+    ]
+  },
+  {
+    id: 'scrap-donation',
+    group: '资产处置',
+    title: '报废与捐赠管理',
+    description: '跟踪设备报废申请、捐赠流转和处置结果。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索处置单号、设备名称、申请人' },
+      {
+        key: 'disposeType',
+        label: '处置类型',
+        type: 'select',
+        options: [
+          { label: '报废申请', value: '报废申请' },
+          { label: '捐赠申请', value: '捐赠申请' },
+          { label: '调拨处置', value: '调拨处置' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '处置状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '审批中', value: '审批中' },
+          { label: '已完成', value: '已完成' },
+          { label: '已驳回', value: '已驳回' }
+        ]
+      },
+      { key: 'applyDate', label: '申请日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'disposeNo', label: '处置单号', minWidth: 150 },
+      { prop: 'disposeType', label: '处置类型', minWidth: 120 },
+      { prop: 'deviceName', label: '设备名称', minWidth: 180 },
+      { prop: 'assetCode', label: '资产编号', minWidth: 140 },
+      { prop: 'reason', label: '处置原因', minWidth: 180 },
+      { prop: 'applicant', label: '申请人', minWidth: 110 },
+      { prop: 'applyDate', label: '申请日期', minWidth: 120 },
+      { prop: 'status', label: '处置状态', minWidth: 110 },
+      { prop: 'reviewer', label: '审批人', minWidth: 110 }
+    ]
+  }
+]
+
+export const LAB_DEVICE_LEDGER_ROWS = LAB_DEVICE_ASSET_ROWS.map((item, index) => ({
+  ...item,
+  networkStatus: pick(['在线', '在线', '离线', '维护模式'], index)
+}))
+
+export const LAB_DEVICE_MAINTENANCE_ROWS = Array.from({ length: 48 }, (_, index) => {
+  const device = pick(LAB_DEVICE_ASSET_ROWS, index)
+  return {
+    orderNo: `WX${202603}${pad(index + 1, 4)}`,
+    deviceName: device.deviceName,
+    labName: device.labName,
+    reporter: pick(personNames, index + 1),
+    faultType: pick(['无法开机', '通讯异常', '传感器故障', '耗材卡滞'], index),
+    priority: pick(['高', '中', '低'], index),
+    vendor: pick(['西门子华东服务中心', '安捷伦授权商', '迈瑞售后团队', '校内运维组'], index),
+    status: pick(['待派单', '维修中', '待验收', '已完成'], index),
+    reportDate: `2026-${pad((index % 3) + 1)}-${pad((index % 28) + 1)}`,
+    reportTime: makeDate((index % 3) + 1, (index % 28) + 1, 8 + (index % 10), (index * 7) % 60)
+  }
+})
+
+export const LAB_DEVICE_BORROW_ROWS = Array.from({ length: 52 }, (_, index) => {
+  const device = pick(LAB_DEVICE_ASSET_ROWS, index)
+  const bizType = pick(['借用申请', '归还确认', '损坏认定'], index)
+  return {
+    borrowNo: `JY${202603}${pad(index + 1, 4)}`,
+    bizType,
+    deviceName: device.deviceName,
+    applicant: pick(personNames, index + 2),
+    department: pick(departments, index + 3),
+    applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 27) + 1)}`,
+    expectedReturnDate: bizType === '借用申请' ? `2026-${pad((index % 3) + 1)}-${pad((index % 27) + 3)}` : '-',
+    status: pick(['待审核', '已通过', '已驳回', '已归档'], index),
+    reviewer: pick(['设备管理员', '周主管', '赵工', '杨老师'], index)
+  }
+})
+
+export const LAB_DEVICE_INVENTORY_ROWS = Array.from({ length: 32 }, (_, index) => {
+  const lab = pick(generatedLabs, index)
+  return {
+    inventoryNo: `PD${202603}${pad(index + 1, 4)}`,
+    inventoryScope: pick(['全量盘点', '专项盘点', '抽样盘点'], index),
+    labName: lab.labName,
+    manager: lab.manager,
+    planDate: `2026-${pad((index % 3) + 1)}-${pad((index % 26) + 2)}`,
+    deviceCount: 12 + (index % 18),
+    diffCount: index % 5,
+    status: pick(['未开始', '进行中', '待处理', '已完成'], index),
+    reportTime: makeDate((index % 3) + 1, (index % 27) + 1, 9 + (index % 8), (index * 5) % 60)
+  }
+})
+
+export const LAB_DEVICE_DISPOSE_ROWS = Array.from({ length: 30 }, (_, index) => {
+  const device = pick(LAB_DEVICE_ASSET_ROWS, index)
+  return {
+    disposeNo: `CZ${202603}${pad(index + 1, 4)}`,
+    disposeType: pick(['报废申请', '捐赠申请', '调拨处置'], index),
+    deviceName: device.deviceName,
+    assetCode: device.assetCode,
+    reason: pick(['主板损坏无法修复', '设备老化超年限', '专业共建捐赠', '校区间资源调拨'], index),
+    applicant: pick(personNames, index + 4),
+    applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 25) + 2)}`,
+    status: pick(['待审核', '审批中', '已完成', '已驳回'], index),
+    reviewer: pick(['刘主任', '王主任', '资产管理员', '赵主管'], index)
+  }
+})
+
+export const LAB_DEVICE_MANAGER_MENU_ROWS: Record<LabDeviceManagerMenuId, Record<string, string | number>[]> = {
+  'device-ledger': LAB_DEVICE_LEDGER_ROWS,
+  'maintenance-orders': LAB_DEVICE_MAINTENANCE_ROWS,
+  'borrow-audit': LAB_DEVICE_BORROW_ROWS,
+  'inventory-check': LAB_DEVICE_INVENTORY_ROWS,
+  'scrap-donation': LAB_DEVICE_DISPOSE_ROWS
+}
+
+export const LAB_DEVICE_MANAGER_STATS: LabStatCard[] = [
+  { label: '设备总数', value: `${LAB_DEVICE_LEDGER_ROWS.length}` },
+  { label: '待维修', value: `${LAB_DEVICE_LEDGER_ROWS.filter((item) => item.status === '待维修').length}` },
+  { label: '待审借还', value: `${LAB_DEVICE_BORROW_ROWS.filter((item) => item.status === '待审核').length}` },
+  { label: '待处置', value: `${LAB_DEVICE_DISPOSE_ROWS.filter((item) => item.status === '待审核' || item.status === '审批中').length}` }
+]
+
+export const getLabDeviceManagerMenuById = (menuId: LabDeviceManagerMenuId) => {
+  return LAB_DEVICE_MANAGER_MENUS.find((item) => item.id === menuId) ?? LAB_DEVICE_MANAGER_MENUS[0]
 }

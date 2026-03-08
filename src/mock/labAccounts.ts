@@ -5,7 +5,6 @@ export interface LabAccountRoleOption {
     | 'lab-admin'
     | 'device-admin'
     | 'consumable-admin'
-    | 'review-manager'
     | 'teacher'
     | 'student'
 }
@@ -23,7 +22,6 @@ export const LAB_ROLE_OPTIONS: LabAccountRoleOption[] = [
   { label: '实验室管理员', value: 'lab-admin' },
   { label: '设备管理员', value: 'device-admin' },
   { label: '易耗品管理员', value: 'consumable-admin' },
-  { label: '审核负责人', value: 'review-manager' },
   { label: '教师', value: 'teacher' },
   { label: '学生', value: 'student' }
 ]
@@ -56,13 +54,6 @@ export const LAB_ACCOUNT_LIST: LabAccountItem[] = [
     account: 'supply01',
     password: 'supply123',
     name: '易耗品库房管理员'
-  },
-  {
-    role: 'review-manager',
-    roleLabel: '审核负责人',
-    account: 'review01',
-    password: 'review123',
-    name: '教学平台主管'
   },
   {
     role: 'teacher',

@@ -21,6 +21,13 @@ export type LabDeviceManagerMenuId =
   | 'inventory-check'
   | 'scrap-donation'
 
+export type LabConsumableManagerMenuId =
+  | 'consumable-ledger'
+  | 'inbound-outbound'
+  | 'borrow-review'
+  | 'hazardous-audit'
+  | 'stock-warning'
+
 export interface LabSelectOption {
   label: string
   value: string
@@ -71,7 +78,6 @@ export const LAB_SYSTEM_ADMIN_MENUS: LabMenuConfig[] = [
           { label: '实验室管理员', value: '实验室管理员' },
           { label: '设备管理员', value: '设备管理员' },
           { label: '易耗品管理员', value: '易耗品管理员' },
-          { label: '审核负责人', value: '审核负责人' },
           { label: '教师', value: '教师' },
           { label: '学生', value: '学生' }
         ]
@@ -435,7 +441,7 @@ const labTemplates = [
   { type: '汽车检修实训室', prefix: '新能源汽车检修', managers: ['周老师', '杨老师', '吴老师'] }
 ]
 
-const userRoles = ['系统管理员', '实验室管理员', '设备管理员', '易耗品管理员', '审核负责人', '教师', '学生']
+const userRoles = ['系统管理员', '实验室管理员', '设备管理员', '易耗品管理员', '教师', '学生']
 const departments = ['信息中心', '智能制造学院', '电子工程学院', '汽车工程学院', '医护学院', '教务处']
 const accountStatus = ['启用', '启用', '启用', '停用', '锁定']
 const scopeOptions = ['全校数据', '本学院数据', '本实验室数据', '本部门审批数据']
@@ -1232,4 +1238,643 @@ export const LAB_DEVICE_MANAGER_STATS: LabStatCard[] = [
 
 export const getLabDeviceManagerMenuById = (menuId: LabDeviceManagerMenuId) => {
   return LAB_DEVICE_MANAGER_MENUS.find((item) => item.id === menuId) ?? LAB_DEVICE_MANAGER_MENUS[0]
+}
+
+export const LAB_CONSUMABLE_MANAGER_MENUS: Array<LabMenuConfig & { id: LabConsumableManagerMenuId }> = [
+  {
+    id: 'consumable-ledger',
+    group: '基础台账',
+    title: '易耗品台账',
+    description: '统一查看易耗品编码、规格、库位、危险属性和当前库存。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索耗材编码、名称、规格型号' },
+      {
+        key: 'category',
+        label: '耗材分类',
+        type: 'select',
+        options: [
+          { label: '电子元件', value: '电子元件' },
+          { label: '焊接辅料', value: '焊接辅料' },
+          { label: '护理耗材', value: '护理耗材' },
+          { label: '汽车保养耗材', value: '汽车保养耗材' }
+        ]
+      },
+      {
+        key: 'hazardLevel',
+        label: '危险属性',
+        type: 'select',
+        options: [
+          { label: '普通', value: '普通' },
+          { label: '低风险', value: '低风险' },
+          { label: '危险品', value: '危险品' }
+        ]
+      },
+      {
+        key: 'stockStatus',
+        label: '库存状态',
+        type: 'select',
+        options: [
+          { label: '充足', value: '充足' },
+          { label: '预警', value: '预警' },
+          { label: '紧缺', value: '紧缺' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'sku', label: '耗材编码', minWidth: 140 },
+      { prop: 'name', label: '耗材名称', minWidth: 180 },
+      { prop: 'category', label: '分类', minWidth: 130 },
+      { prop: 'spec', label: '规格型号', minWidth: 160 },
+      { prop: 'warehouse', label: '库房', minWidth: 140 },
+      { prop: 'hazardLevel', label: '危险属性', minWidth: 110 },
+      { prop: 'stock', label: '当前库存', minWidth: 100 },
+      { prop: 'safeStock', label: '安全库存', minWidth: 100 },
+      { prop: 'stockStatus', label: '库存状态', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'inbound-outbound',
+    group: '库存管理',
+    title: '出入库记录',
+    description: '跟踪易耗品入库、出库、退库与库存调整记录。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索单号、耗材名称、经办人' },
+      {
+        key: 'bizType',
+        label: '业务类型',
+        type: 'select',
+        options: [
+          { label: '入库', value: '入库' },
+          { label: '出库', value: '出库' },
+          { label: '退库', value: '退库' },
+          { label: '库存调整', value: '库存调整' }
+        ]
+      },
+      {
+        key: 'warehouse',
+        label: '库房',
+        type: 'select',
+        options: [
+          { label: '中心库房A', value: '中心库房A' },
+          { label: '中心库房B', value: '中心库房B' },
+          { label: '电子耗材库', value: '电子耗材库' },
+          { label: '医护耗材库', value: '医护耗材库' }
+        ]
+      },
+      { key: 'operateDate', label: '业务日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'orderNo', label: '业务单号', minWidth: 150 },
+      { prop: 'bizType', label: '业务类型', minWidth: 110 },
+      { prop: 'name', label: '耗材名称', minWidth: 180 },
+      { prop: 'spec', label: '规格型号', minWidth: 150 },
+      { prop: 'warehouse', label: '库房', minWidth: 130 },
+      { prop: 'quantity', label: '数量', minWidth: 90 },
+      { prop: 'operator', label: '经办人', minWidth: 110 },
+      { prop: 'operateTime', label: '业务时间', minWidth: 170 },
+      { prop: 'remark', label: '备注', minWidth: 180 }
+    ]
+  },
+  {
+    id: 'borrow-review',
+    group: '流程审核',
+    title: '领用与归还审核',
+    description: '处理普通易耗品领用、借用和归还确认业务。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索单号、申请人、耗材名称' },
+      {
+        key: 'bizType',
+        label: '业务类型',
+        type: 'select',
+        options: [
+          { label: '领用申请', value: '领用申请' },
+          { label: '借用申请', value: '借用申请' },
+          { label: '归还确认', value: '归还确认' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '审核状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' },
+          { label: '已归档', value: '已归档' }
+        ]
+      },
+      { key: 'applyDate', label: '申请日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'reviewNo', label: '业务单号', minWidth: 150 },
+      { prop: 'bizType', label: '业务类型', minWidth: 110 },
+      { prop: 'applicant', label: '申请人', minWidth: 110 },
+      { prop: 'department', label: '所属部门', minWidth: 140 },
+      { prop: 'name', label: '耗材名称', minWidth: 180 },
+      { prop: 'quantity', label: '申请数量', minWidth: 90 },
+      { prop: 'applyDate', label: '申请日期', minWidth: 120 },
+      { prop: 'status', label: '审核状态', minWidth: 110 },
+      { prop: 'reviewer', label: '审核人', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'hazardous-audit',
+    group: '流程审核',
+    title: '危险品特殊审核',
+    description: '针对危险属性易耗品进行双人审批、用途核验和领取追踪。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索申请单号、危险品名称、申请人' },
+      {
+        key: 'hazardLevel',
+        label: '危险级别',
+        type: 'select',
+        options: [
+          { label: '低风险', value: '低风险' },
+          { label: '危险品', value: '危险品' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '审批状态',
+        type: 'select',
+        options: [
+          { label: '待初审', value: '待初审' },
+          { label: '待复审', value: '待复审' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' }
+        ]
+      },
+      { key: 'applyDate', label: '申请日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'hazardNo', label: '申请单号', minWidth: 150 },
+      { prop: 'name', label: '危险品名称', minWidth: 180 },
+      { prop: 'hazardLevel', label: '危险级别', minWidth: 110 },
+      { prop: 'applicant', label: '申请人', minWidth: 110 },
+      { prop: 'usagePurpose', label: '使用用途', minWidth: 180 },
+      { prop: 'applyDate', label: '申请日期', minWidth: 120 },
+      { prop: 'status', label: '审批状态', minWidth: 110 },
+      { prop: 'firstReviewer', label: '初审人', minWidth: 110 },
+      { prop: 'secondReviewer', label: '复审人', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'stock-warning',
+    group: '库存管理',
+    title: '库存预警监控',
+    description: '聚焦库存预警、有效期临近与高频消耗耗材，便于及时补货。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索耗材名称、编码、库房' },
+      {
+        key: 'warningType',
+        label: '预警类型',
+        type: 'select',
+        options: [
+          { label: '库存预警', value: '库存预警' },
+          { label: '紧缺预警', value: '紧缺预警' },
+          { label: '效期预警', value: '效期预警' }
+        ]
+      },
+      {
+        key: 'warehouse',
+        label: '库房',
+        type: 'select',
+        options: [
+          { label: '中心库房A', value: '中心库房A' },
+          { label: '中心库房B', value: '中心库房B' },
+          { label: '电子耗材库', value: '电子耗材库' },
+          { label: '医护耗材库', value: '医护耗材库' }
+        ]
+      },
+      {
+        key: 'hazardLevel',
+        label: '危险属性',
+        type: 'select',
+        options: [
+          { label: '普通', value: '普通' },
+          { label: '低风险', value: '低风险' },
+          { label: '危险品', value: '危险品' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'sku', label: '耗材编码', minWidth: 140 },
+      { prop: 'name', label: '耗材名称', minWidth: 180 },
+      { prop: 'warehouse', label: '库房', minWidth: 130 },
+      { prop: 'stock', label: '当前库存', minWidth: 100 },
+      { prop: 'safeStock', label: '安全库存', minWidth: 100 },
+      { prop: 'warningType', label: '预警类型', minWidth: 110 },
+      { prop: 'hazardLevel', label: '危险属性', minWidth: 110 },
+      { prop: 'expiryDate', label: '有效期', minWidth: 120 },
+      { prop: 'handleStatus', label: '处理状态', minWidth: 110 },
+      { prop: 'handler', label: '处理人', minWidth: 110 },
+      { prop: 'manager', label: '负责人', minWidth: 110 }
+    ]
+  }
+]
+
+export const LAB_CONSUMABLE_LEDGER_ROWS = LAB_CONSUMABLE_ROWS.map((item) => ({ ...item }))
+
+export const LAB_CONSUMABLE_IO_ROWS = Array.from({ length: 66 }, (_, index) => {
+  const item = pick(LAB_CONSUMABLE_ROWS, index)
+  return {
+    orderNo: `CK${202603}${pad(index + 1, 4)}`,
+    bizType: pick(['入库', '出库', '退库', '库存调整'], index),
+    name: item.name,
+    spec: item.spec,
+    warehouse: item.warehouse,
+    quantity: 5 + (index % 18) * 2,
+    operator: pick(personNames, index + 2),
+    operateDate: `2026-${pad((index % 3) + 1)}-${pad((index % 27) + 1)}`,
+    operateTime: makeDate((index % 3) + 1, (index % 27) + 1, 8 + (index % 9), (index * 6) % 60),
+    remark: pick(['教学领用', '集中补货', '课后退库', '月末盘点调整'], index)
+  }
+})
+
+export const LAB_CONSUMABLE_REVIEW_ROWS = Array.from({ length: 50 }, (_, index) => {
+  const item = pick(LAB_CONSUMABLE_ROWS, index)
+  return {
+    reviewNo: `LY${202603}${pad(index + 1, 4)}`,
+    bizType: pick(['领用申请', '借用申请', '归还确认'], index),
+    applicant: pick(personNames, index + 1),
+    department: pick(departments, index + 1),
+    name: item.name,
+    quantity: 2 + (index % 10),
+    applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 26) + 1)}`,
+    status: pick(['待审核', '已通过', '已驳回', '已归档'], index),
+    reviewer: pick(['库管员', '易耗品管理员', '值班主管', '库房主管'], index)
+  }
+})
+
+export const LAB_HAZARDOUS_AUDIT_ROWS = Array.from({ length: 28 }, (_, index) => ({
+  hazardNo: `WXP${202603}${pad(index + 1, 4)}`,
+  name: pick(['无水乙醇', '甲醛固定液', '高锰酸钾', '过氧化氢试剂'], index),
+  hazardLevel: pick(['低风险', '危险品'], index),
+  applicant: pick(personNames, index + 3),
+  usagePurpose: pick(['护理实训消毒演示', '化学分析实验', '应急处理训练', '专项技能竞赛'], index),
+  applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 25) + 2)}`,
+  status: pick(['待初审', '待复审', '已通过', '已驳回'], index),
+  firstReviewer: pick(['易耗品管理员', '安全员', '周主管'], index),
+  secondReviewer: pick(['库房主管', '院办主任', '安全负责人'], index)
+}))
+
+export const LAB_CONSUMABLE_WARNING_ROWS = LAB_CONSUMABLE_ROWS.slice(0, 36).map((item, index) => ({
+  sku: item.sku,
+  name: item.name,
+  warehouse: item.warehouse,
+  stock: item.stock,
+  safeStock: item.safeStock,
+  warningType: item.stock <= item.safeStock * 0.5 ? '紧缺预警' : index % 5 === 0 ? '效期预警' : '库存预警',
+  hazardLevel: item.hazardLevel,
+  expiryDate: `2026-${pad(((index + 3) % 9) + 1)}-${pad((index % 24) + 5)}`,
+  handleStatus: pick(['待处理', '处理中', '已完成'], index),
+  handler: pick(['易耗品管理员', '库房主管', '安全员'], index),
+  manager: item.manager
+}))
+
+export const LAB_CONSUMABLE_MANAGER_MENU_ROWS: Record<LabConsumableManagerMenuId, Record<string, string | number>[]> = {
+  'consumable-ledger': LAB_CONSUMABLE_LEDGER_ROWS,
+  'inbound-outbound': LAB_CONSUMABLE_IO_ROWS,
+  'borrow-review': LAB_CONSUMABLE_REVIEW_ROWS,
+  'hazardous-audit': LAB_HAZARDOUS_AUDIT_ROWS,
+  'stock-warning': LAB_CONSUMABLE_WARNING_ROWS
+}
+
+export const LAB_CONSUMABLE_MANAGER_STATS: LabStatCard[] = [
+  { label: '耗材条目', value: `${LAB_CONSUMABLE_LEDGER_ROWS.length}` },
+  { label: '待审申请', value: `${LAB_CONSUMABLE_REVIEW_ROWS.filter((item) => item.status === '待审核').length}` },
+  { label: '危险品审批', value: `${LAB_HAZARDOUS_AUDIT_ROWS.filter((item) => item.status === '待初审' || item.status === '待复审').length}` },
+  { label: '库存预警', value: `${LAB_CONSUMABLE_WARNING_ROWS.length}` }
+]
+
+export const getLabConsumableManagerMenuById = (menuId: LabConsumableManagerMenuId) => {
+  return LAB_CONSUMABLE_MANAGER_MENUS.find((item) => item.id === menuId) ?? LAB_CONSUMABLE_MANAGER_MENUS[0]
+}
+
+export type LabUserPortalMenuId = 'reservation-center' | 'device-service' | 'consumable-service' | 'my-applications'
+
+export const LAB_USER_PORTAL_MENUS: Array<LabMenuConfig & { id: LabUserPortalMenuId }> = [
+  {
+    id: 'reservation-center',
+    group: '实验资源',
+    title: '实验室预约',
+    description: '提交实验室预约申请，查看预约时间、审核状态和使用安排。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索预约单号、实验室、课程/用途' },
+      {
+        key: 'status',
+        label: '预约状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' },
+          { label: '已取消', value: '已取消' }
+        ]
+      },
+      { key: 'reservationDate', label: '预约日期', type: 'date' },
+      {
+        key: 'labType',
+        label: '实验室类型',
+        type: 'select',
+        options: [
+          { label: '电子实训室', value: '电子实训室' },
+          { label: '智能制造实训室', value: '智能制造实训室' },
+          { label: '护理技能实训室', value: '护理技能实训室' },
+          { label: '汽车检修实训室', value: '汽车检修实训室' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'reservationNo', label: '预约单号', minWidth: 150 },
+      { prop: 'labName', label: '实验室', minWidth: 180 },
+      { prop: 'labType', label: '实验室类型', minWidth: 150 },
+      { prop: 'courseName', label: '课程/用途', minWidth: 180 },
+      { prop: 'reservationDate', label: '预约日期', minWidth: 120 },
+      { prop: 'timeSlot', label: '预约时段', minWidth: 160 },
+      { prop: 'status', label: '状态', minWidth: 110 },
+      { prop: 'reviewer', label: '审核人', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'device-service',
+    group: '实验资源',
+    title: '设备借用',
+    description: '提交设备借用申请，查看归还日期、审核进度和处理结果。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索单号、设备名称、用途' },
+      {
+        key: 'status',
+        label: '审核状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' },
+          { label: '已归档', value: '已归档' }
+        ]
+      },
+      { key: 'applyDate', label: '申请日期', type: 'date' },
+      {
+        key: 'category',
+        label: '设备类别',
+        type: 'select',
+        options: [
+          { label: '数控设备', value: '数控设备' },
+          { label: '电子测试设备', value: '电子测试设备' },
+          { label: '护理实训设备', value: '护理实训设备' },
+          { label: '汽车诊断设备', value: '汽车诊断设备' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'borrowNo', label: '申请单号', minWidth: 150 },
+      { prop: 'deviceName', label: '设备名称', minWidth: 180 },
+      { prop: 'category', label: '设备类别', minWidth: 130 },
+      { prop: 'purpose', label: '借用用途', minWidth: 180 },
+      { prop: 'applyDate', label: '申请日期', minWidth: 120 },
+      { prop: 'expectedReturnDate', label: '应归还日期', minWidth: 120 },
+      { prop: 'status', label: '审核状态', minWidth: 110 },
+      { prop: 'reviewer', label: '审核人', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'consumable-service',
+    group: '实验服务',
+    title: '耗材申领',
+    description: '提交普通耗材申领或借用申请，查看出库与归还处理进度。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索单号、耗材名称、用途' },
+      {
+        key: 'status',
+        label: '审核状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' },
+          { label: '已归档', value: '已归档' }
+        ]
+      },
+      { key: 'applyDate', label: '申请日期', type: 'date' },
+      {
+        key: 'category',
+        label: '耗材分类',
+        type: 'select',
+        options: [
+          { label: '电子元件', value: '电子元件' },
+          { label: '焊接辅料', value: '焊接辅料' },
+          { label: '护理耗材', value: '护理耗材' },
+          { label: '汽车保养耗材', value: '汽车保养耗材' }
+        ]
+      }
+    ],
+    columns: [
+      { prop: 'reviewNo', label: '申请单号', minWidth: 150 },
+      { prop: 'name', label: '耗材名称', minWidth: 180 },
+      { prop: 'category', label: '耗材分类', minWidth: 130 },
+      { prop: 'quantity', label: '申请数量', minWidth: 100 },
+      { prop: 'usagePurpose', label: '使用用途', minWidth: 180 },
+      { prop: 'applyDate', label: '申请日期', minWidth: 120 },
+      { prop: 'status', label: '审核状态', minWidth: 110 },
+      { prop: 'reviewer', label: '审核人', minWidth: 110 }
+    ]
+  },
+  {
+    id: 'my-applications',
+    group: '实验服务',
+    title: '我的申请记录',
+    description: '统一查看个人提交的预约、设备借用和耗材申领记录。',
+    filters: [
+      { key: 'keyword', label: '关键字', type: 'input', placeholder: '搜索单号、业务类型、目标资源' },
+      {
+        key: 'bizType',
+        label: '业务类型',
+        type: 'select',
+        options: [
+          { label: '实验室预约', value: '实验室预约' },
+          { label: '设备借用', value: '设备借用' },
+          { label: '耗材申领', value: '耗材申领' }
+        ]
+      },
+      {
+        key: 'status',
+        label: '申请状态',
+        type: 'select',
+        options: [
+          { label: '待审核', value: '待审核' },
+          { label: '已通过', value: '已通过' },
+          { label: '已驳回', value: '已驳回' },
+          { label: '已取消', value: '已取消' },
+          { label: '已归档', value: '已归档' }
+        ]
+      },
+      { key: 'submitDate', label: '提交日期', type: 'date' }
+    ],
+    columns: [
+      { prop: 'applicationNo', label: '申请单号', minWidth: 150 },
+      { prop: 'bizType', label: '业务类型', minWidth: 110 },
+      { prop: 'targetName', label: '目标资源', minWidth: 180 },
+      { prop: 'submitDate', label: '提交日期', minWidth: 120 },
+      { prop: 'status', label: '申请状态', minWidth: 110 },
+      { prop: 'currentNode', label: '当前节点', minWidth: 120 },
+      { prop: 'reviewer', label: '处理人', minWidth: 110 },
+      { prop: 'remark', label: '备注', minWidth: 180 }
+    ]
+  }
+]
+
+const teacherLabs = Array.from({ length: 24 }, (_, index) => {
+  const lab = pick(generatedLabs, index)
+  return {
+    reservationNo: `TYY${202603}${pad(index + 1, 4)}`,
+    labName: lab.labName,
+    labType: lab.labType,
+    courseName: pick(['PLC编程实训', '电子焊接训练', '护理操作演练', '新能源汽车检修'], index),
+    reservationDate: `2026-${pad((index % 3) + 1)}-${pad((index % 26) + 2)}`,
+    timeSlot: pick(['08:00-10:00', '10:20-12:00', '14:00-16:00', '18:30-20:30'], index),
+    status: pick(['待审核', '已通过', '已通过', '已驳回', '已取消'], index),
+    reviewer: pick(['实验室管理员', '值班管理员', '顾工'], index)
+  }
+})
+
+const teacherDeviceRows = Array.from({ length: 18 }, (_, index) => {
+  const device = pick(LAB_DEVICE_LEDGER_ROWS, index)
+  return {
+    borrowNo: `TSB${202603}${pad(index + 1, 4)}`,
+    deviceName: device.deviceName,
+    category: device.category,
+    purpose: pick(['课堂演示', '课程实训', '竞赛备赛', '教学研发'], index),
+    applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 24) + 3)}`,
+    expectedReturnDate: `2026-${pad((index % 3) + 1)}-${pad((index % 24) + 5)}`,
+    status: pick(['待审核', '已通过', '已归档', '已驳回'], index),
+    reviewer: pick(['设备管理员', '周主管', '赵工'], index)
+  }
+})
+
+const teacherConsumableRows = Array.from({ length: 20 }, (_, index) => {
+  const item = pick(LAB_CONSUMABLE_ROWS, index)
+  return {
+    reviewNo: `TSL${202603}${pad(index + 1, 4)}`,
+    name: item.name,
+    category: item.category,
+    quantity: 2 + (index % 8),
+    usagePurpose: pick(['课堂教学', '技能竞赛', '课程设计', '开放训练'], index),
+    applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 24) + 2)}`,
+    status: pick(['待审核', '已通过', '已归档', '已驳回'], index),
+    reviewer: pick(['易耗品管理员', '库房主管', '安全员'], index)
+  }
+})
+
+const studentLabs = Array.from({ length: 24 }, (_, index) => {
+  const lab = pick(generatedLabs, index + 5)
+  return {
+    reservationNo: `SYY${202603}${pad(index + 1, 4)}`,
+    labName: lab.labName,
+    labType: lab.labType,
+    courseName: pick(['社团训练', '课后开放实训', '技能竞赛备赛', '创新项目调试'], index),
+    reservationDate: `2026-${pad((index % 3) + 1)}-${pad((index % 24) + 4)}`,
+    timeSlot: pick(['08:00-10:00', '10:20-12:00', '14:00-16:00', '18:30-20:30'], index),
+    status: pick(['待审核', '已通过', '已驳回', '已取消'], index),
+    reviewer: pick(['实验室管理员', '值班管理员', '顾工'], index)
+  }
+})
+
+const studentDeviceRows = Array.from({ length: 16 }, (_, index) => {
+  const device = pick(LAB_DEVICE_LEDGER_ROWS, index + 8)
+  return {
+    borrowNo: `SSB${202603}${pad(index + 1, 4)}`,
+    deviceName: device.deviceName,
+    category: device.category,
+    purpose: pick(['社团训练', '技能竞赛', '毕业设计', '创新项目'], index),
+    applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 22) + 3)}`,
+    expectedReturnDate: `2026-${pad((index % 3) + 1)}-${pad((index % 22) + 6)}`,
+    status: pick(['待审核', '已通过', '已归档', '已驳回'], index),
+    reviewer: pick(['设备管理员', '实验室管理员', '赵工'], index)
+  }
+})
+
+const studentConsumableRows = Array.from({ length: 18 }, (_, index) => {
+  const item = pick(LAB_CONSUMABLE_ROWS, index + 10)
+  return {
+    reviewNo: `SSL${202603}${pad(index + 1, 4)}`,
+    name: item.name,
+    category: item.category,
+    quantity: 1 + (index % 6),
+    usagePurpose: pick(['社团训练', '技能竞赛', '课后开放', '创新项目'], index),
+    applyDate: `2026-${pad((index % 3) + 1)}-${pad((index % 24) + 1)}`,
+    status: pick(['待审核', '已通过', '已归档', '已驳回'], index),
+    reviewer: pick(['易耗品管理员', '库房主管', '安全员'], index)
+  }
+})
+
+const buildApplicationRows = (
+  reservations: typeof teacherLabs,
+  devices: typeof teacherDeviceRows,
+  consumables: typeof teacherConsumableRows
+) => {
+  return [
+    ...reservations.map((item) => ({
+      applicationNo: item.reservationNo,
+      bizType: '实验室预约',
+      targetName: item.labName,
+      submitDate: item.reservationDate,
+      status: item.status,
+      currentNode: item.status === '待审核' ? '实验室审核' : '流程结束',
+      reviewer: item.reviewer,
+      remark: item.courseName
+    })),
+    ...devices.map((item) => ({
+      applicationNo: item.borrowNo,
+      bizType: '设备借用',
+      targetName: item.deviceName,
+      submitDate: item.applyDate,
+      status: item.status,
+      currentNode: item.status === '待审核' ? '设备审核' : '流程结束',
+      reviewer: item.reviewer,
+      remark: item.purpose
+    })),
+    ...consumables.map((item) => ({
+      applicationNo: item.reviewNo,
+      bizType: '耗材申领',
+      targetName: item.name,
+      submitDate: item.applyDate,
+      status: item.status,
+      currentNode: item.status === '待审核' ? '耗材审核' : '流程结束',
+      reviewer: item.reviewer,
+      remark: item.usagePurpose
+    }))
+  ]
+}
+
+export const LAB_TEACHER_PORTAL_MENU_ROWS: Record<LabUserPortalMenuId, Record<string, string | number>[]> = {
+  'reservation-center': teacherLabs,
+  'device-service': teacherDeviceRows,
+  'consumable-service': teacherConsumableRows,
+  'my-applications': buildApplicationRows(teacherLabs, teacherDeviceRows, teacherConsumableRows)
+}
+
+export const LAB_STUDENT_PORTAL_MENU_ROWS: Record<LabUserPortalMenuId, Record<string, string | number>[]> = {
+  'reservation-center': studentLabs,
+  'device-service': studentDeviceRows,
+  'consumable-service': studentConsumableRows,
+  'my-applications': buildApplicationRows(studentLabs, studentDeviceRows, studentConsumableRows)
+}
+
+export const LAB_TEACHER_PORTAL_STATS: LabStatCard[] = [
+  { label: '本月预约', value: `${teacherLabs.length}` },
+  { label: '待审设备借用', value: `${teacherDeviceRows.filter((item) => item.status === '待审核').length}` },
+  { label: '待审耗材申领', value: `${teacherConsumableRows.filter((item) => item.status === '待审核').length}` },
+  { label: '已通过申请', value: `${buildApplicationRows(teacherLabs, teacherDeviceRows, teacherConsumableRows).filter((item) => item.status === '已通过').length}` }
+]
+
+export const LAB_STUDENT_PORTAL_STATS: LabStatCard[] = [
+  { label: '开放预约', value: `${studentLabs.length}` },
+  { label: '待审设备借用', value: `${studentDeviceRows.filter((item) => item.status === '待审核').length}` },
+  { label: '待审耗材申领', value: `${studentConsumableRows.filter((item) => item.status === '待审核').length}` },
+  { label: '已通过申请', value: `${buildApplicationRows(studentLabs, studentDeviceRows, studentConsumableRows).filter((item) => item.status === '已通过').length}` }
+]
+
+export const getLabUserPortalMenuById = (menuId: LabUserPortalMenuId) => {
+  return LAB_USER_PORTAL_MENUS.find((item) => item.id === menuId) ?? LAB_USER_PORTAL_MENUS[0]
 }

@@ -32,12 +32,20 @@
         <div>
           <p class="fitness-manage-header-kicker">{{ activeMenu.group }}</p>
           <h2>{{ activeMenu.title }}</h2>
-          <p>{{ activeMenu.description }}</p>
+          <p class="fitness-manage-header-desc">{{ activeMenu.description }}</p>
+          <div class="fitness-manage-header-meta">
+            <span v-for="item in displayStats" :key="item.label" class="fitness-manage-header-chip">
+              {{ item.label }} {{ item.value }}
+            </span>
+          </div>
+          <div class="fitness-manage-header-notes">
+            <p v-for="item in displayHighlights" :key="item">{{ item }}</p>
+          </div>
         </div>
       </header>
 
       <section class="fitness-stat-grid">
-        <article v-for="item in activeMenu.stats" :key="item.label" class="fitness-stat-card">
+        <article v-for="item in displayStats" :key="item.label" class="fitness-stat-card">
           <span>{{ item.label }}</span>
           <strong>{{ item.value }}</strong>
         </article>
@@ -46,24 +54,10 @@
       <section class="fitness-content-grid">
         <el-card class="fitness-panel" shadow="never">
           <template #header>
-            <div class="fitness-panel-head">
-              <h3>数据摘要</h3>
-            </div>
-          </template>
-
-          <div class="fitness-highlight-list">
-            <article v-for="item in activeMenu.highlights" :key="item" class="fitness-highlight-item">
-              {{ item }}
-            </article>
-          </div>
-        </el-card>
-
-        <el-card class="fitness-panel" shadow="never">
-          <template #header>
             <div class="fitness-panel-head fitness-panel-head--with-meta">
               <div>
                 <h3>数据列表</h3>
-                <p>当前菜单共 {{ activeMenu.rows.length }} 条数据，筛选后 {{ filteredRows.length }} 条。</p>
+                <p>当前菜单共 {{ totalRowCount }} 条数据，筛选后 {{ filteredRowCount }} 条。</p>
               </div>
               <div class="fitness-table-toolbar">
                 <el-input
@@ -72,39 +66,219 @@
                   clearable
                   class="fitness-search-input"
                 />
+                <template v-if="isAccountMenu">
+                  <el-select v-model="accountRoleFilter" placeholder="角色筛选" clearable class="fitness-filter-select">
+                    <el-option v-for="item in accountRoleOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                  <el-select v-model="accountStatusFilter" placeholder="状态筛选" clearable class="fitness-filter-select">
+                    <el-option v-for="item in accountStatusOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </template>
+                <template v-if="isStudentMenu">
+                  <el-select v-model="studentGradeFilter" placeholder="年级筛选" clearable class="fitness-filter-select">
+                    <el-option v-for="item in studentGradeOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                  <el-select v-model="studentClassFilter" placeholder="班级筛选" filterable clearable class="fitness-filter-select fitness-filter-select-wide">
+                    <el-option v-for="item in studentClassOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                  <el-select v-model="studentFaceStatusFilter" placeholder="人脸状态" clearable class="fitness-filter-select">
+                    <el-option v-for="item in studentFaceStatusOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                  <el-select v-model="studentQualityFilter" placeholder="照片质量" clearable class="fitness-filter-select">
+                    <el-option v-for="item in studentQualityOptions" :key="item" :label="item" :value="item" />
+                  </el-select>
+                </template>
                 <el-button @click="resetSearch">重置</el-button>
               </div>
             </div>
           </template>
 
-          <el-table :data="filteredRows" border stripe class="fitness-data-table">
+          <el-table :data="tableRows" :loading="tableLoading" border stripe class="fitness-data-table">
             <el-table-column
               v-for="column in activeMenu.columns"
               :key="column.prop"
               :prop="column.prop"
               :label="column.label"
               :min-width="column.minWidth ?? 120"
-            />
+            >
+              <template #default="scope">
+                <div v-if="isAccountMenu && column.prop === 'status'" class="fitness-status-actions">
+                  <el-button
+                    size="small"
+                    :type="scope.row.status === '启用' ? 'success' : 'default'"
+                    @click="setAccountStatus(scope.row, '启用')"
+                  >
+                    启用
+                  </el-button>
+                  <el-button
+                    size="small"
+                    :type="scope.row.status === '禁用' ? 'danger' : 'default'"
+                    @click="setAccountStatus(scope.row, '禁用')"
+                  >
+                    禁用
+                  </el-button>
+                </div>
+                <div v-else-if="isStudentMenu && column.prop === 'facePhotoUrl'" class="fitness-photo-cell">
+                  <el-image
+                    :src="scope.row.facePhotoUrl"
+                    fit="cover"
+                    :preview-src-list="[scope.row.facePhotoUrl]"
+                    preview-teleported
+                    class="fitness-photo-image"
+                  />
+                </div>
+                <div v-else-if="isStudentMenu && column.prop === 'actions'" class="fitness-row-actions">
+                  <el-button size="small" @click="openStudentEditor(scope.row)">编辑</el-button>
+                  <el-button size="small" type="danger" plain @click="removeStudent(scope.row)">删除</el-button>
+                </div>
+                <span v-else>{{ scope.row[column.prop] }}</span>
+              </template>
+            </el-table-column>
           </el-table>
+
+          <div v-if="hasRemotePagination" class="fitness-pagination">
+            <el-pagination
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              background
+              layout="total, sizes, prev, pager, next"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="filteredRowCount"
+            />
+          </div>
         </el-card>
       </section>
+
+      <el-dialog v-model="studentEditorVisible" title="编辑学生信息" width="760px">
+        <el-form :model="studentEditForm" label-width="88px" class="fitness-edit-form">
+          <el-form-item label="学号">
+            <el-input v-model="studentEditForm.studentId" disabled />
+          </el-form-item>
+          <el-form-item label="姓名">
+            <el-input v-model="studentEditForm.studentName" />
+          </el-form-item>
+          <el-form-item label="性别">
+            <el-select v-model="studentEditForm.gender">
+              <el-option label="男" value="男" />
+              <el-option label="女" value="女" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="年级">
+            <el-select v-model="studentEditForm.gradeName" filterable>
+              <el-option v-for="item in studentEditableGradeOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="班级">
+            <el-select v-model="studentEditForm.className" filterable allow-create default-first-option>
+              <el-option v-for="item in studentEditableClassOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="人脸状态">
+            <el-select v-model="studentEditForm.faceStatus">
+              <el-option v-for="item in studentEditableFaceStatusOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="照片质量">
+            <el-select v-model="studentEditForm.quality">
+              <el-option v-for="item in studentEditableQualityOptions" :key="item" :label="item" :value="item" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="采集方式">
+            <el-select v-model="studentEditForm.captureChannel">
+              <el-option label="H5采集" value="H5采集" />
+              <el-option label="小程序采集" value="小程序采集" />
+              <el-option label="批量导入" value="批量导入" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="照片链接" class="fitness-edit-form-full">
+            <el-input v-model="studentEditForm.facePhotoUrl" placeholder="请输入人脸照片链接" />
+          </el-form-item>
+          <el-form-item label="重新上传" class="fitness-edit-form-full">
+            <div class="fitness-upload-row">
+              <el-upload :auto-upload="false" :show-file-list="false" :on-change="handleStudentPhotoChange">
+                <el-button>选择新图片</el-button>
+              </el-upload>
+              <el-image :src="studentEditForm.facePhotoUrl" fit="cover" class="fitness-photo-image fitness-photo-image-preview" />
+            </div>
+          </el-form-item>
+        </el-form>
+
+        <template #footer>
+          <div class="fitness-dialog-actions">
+            <el-button @click="studentEditorVisible = false">取消</el-button>
+            <el-button type="primary" @click="submitStudentEdit">保存</el-button>
+          </div>
+        </template>
+      </el-dialog>
     </main>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox, type UploadFile } from 'element-plus'
 import { useRouter } from 'vue-router'
+import {
+  FITNESS_ACCOUNT_ROLE_OPTIONS,
+  FITNESS_ACCOUNT_STATUS_OPTIONS,
+  FITNESS_ACCOUNT_TOTAL,
+  queryFitnessAccounts,
+  updateFitnessAccountStatus,
+  type FitnessAccountRecord,
+  type FitnessAccountRoleLabel,
+  type FitnessAccountStatus
+} from '@/mock/fitnessAccounts'
 import {
   FITNESS_ADMIN_MENU_ITEMS,
   FITNESS_STORAGE_ACCOUNT,
   FITNESS_STORAGE_ROLE
 } from '@/mock/fitnessPlatform'
+import {
+  FITNESS_STUDENT_CLASS_OPTIONS,
+  FITNESS_STUDENT_FACE_STATUS_OPTIONS,
+  FITNESS_STUDENT_GRADE_OPTIONS,
+  FITNESS_STUDENT_HIGHLIGHTS,
+  FITNESS_STUDENT_QUALITY_OPTIONS,
+  FITNESS_STUDENT_TOTAL,
+  deleteFitnessStudent,
+  getFitnessStudentMenuStats,
+  getFitnessStudentStats,
+  queryFitnessStudents,
+  updateFitnessStudent,
+  type FitnessStudentRecord
+} from '@/mock/fitnessStudents'
 
 const router = useRouter()
+const ACCOUNT_MENU_ID = 'accounts'
+const STUDENT_MENU_ID = 'students'
 const activeMenuId = ref('dashboard')
 const searchKeyword = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const tableLoading = ref(false)
+const accountRows = ref<FitnessAccountRecord[]>([])
+const accountTotal = ref(FITNESS_ACCOUNT_TOTAL)
+const accountRoleFilter = ref<FitnessAccountRoleLabel | ''>('')
+const accountStatusFilter = ref<FitnessAccountStatus | ''>('')
+const studentRows = ref<FitnessStudentRecord[]>([])
+const studentTotal = ref(FITNESS_STUDENT_TOTAL)
+const studentGradeFilter = ref('')
+const studentClassFilter = ref('')
+const studentFaceStatusFilter = ref('')
+const studentQualityFilter = ref('')
+const studentEditorVisible = ref(false)
+const studentEditForm = ref<FitnessStudentRecord>({
+  studentId: '',
+  studentName: '',
+  gender: '男',
+  gradeName: '七年级',
+  className: '',
+  facePhotoUrl: '',
+  faceStatus: '已同步设备',
+  quality: '合格',
+  captureChannel: 'H5采集',
+  updatedAt: ''
+})
 
 const menuGroups = computed(() => {
   const groups = new Map<string, typeof FITNESS_ADMIN_MENU_ITEMS>()
@@ -124,7 +298,27 @@ const activeMenu = computed(() => {
   return FITNESS_ADMIN_MENU_ITEMS.find((item) => item.id === activeMenuId.value) ?? FITNESS_ADMIN_MENU_ITEMS[0]
 })
 
-const filteredRows = computed(() => {
+const isAccountMenu = computed(() => activeMenu.value.id === ACCOUNT_MENU_ID)
+const isStudentMenu = computed(() => activeMenu.value.id === STUDENT_MENU_ID)
+const hasRemotePagination = computed(() => isAccountMenu.value || isStudentMenu.value)
+const accountRoleOptions = FITNESS_ACCOUNT_ROLE_OPTIONS
+const accountStatusOptions = FITNESS_ACCOUNT_STATUS_OPTIONS
+const studentGradeOptions = FITNESS_STUDENT_GRADE_OPTIONS.filter((item) => item !== '全部')
+const studentClassOptions = FITNESS_STUDENT_CLASS_OPTIONS.filter((item) => item !== '全部')
+const studentFaceStatusOptions = FITNESS_STUDENT_FACE_STATUS_OPTIONS.filter((item) => item !== '全部')
+const studentQualityOptions = FITNESS_STUDENT_QUALITY_OPTIONS.filter((item) => item !== '全部')
+const studentEditableGradeOptions = studentGradeOptions
+const studentEditableClassOptions = studentClassOptions
+const studentEditableFaceStatusOptions = studentFaceStatusOptions
+const studentEditableQualityOptions = studentQualityOptions
+const displayStats = computed(() => {
+  return isStudentMenu.value ? getFitnessStudentMenuStats() : activeMenu.value.stats
+})
+const displayHighlights = computed(() => {
+  return isStudentMenu.value ? FITNESS_STUDENT_HIGHLIGHTS : activeMenu.value.highlights
+})
+
+const localFilteredRows = computed(() => {
   const keyword = searchKeyword.value.trim().toLowerCase()
 
   if (!keyword) {
@@ -139,6 +333,42 @@ const filteredRows = computed(() => {
   })
 })
 
+const tableRows = computed(() => {
+  if (isAccountMenu.value) {
+    return accountRows.value
+  }
+
+  if (isStudentMenu.value) {
+    return studentRows.value
+  }
+
+  return localFilteredRows.value
+})
+
+const totalRowCount = computed(() => {
+  if (isAccountMenu.value) {
+    return FITNESS_ACCOUNT_TOTAL
+  }
+
+  if (isStudentMenu.value) {
+    return getFitnessStudentStats().total
+  }
+
+  return activeMenu.value.rows.length
+})
+
+const filteredRowCount = computed(() => {
+  if (isAccountMenu.value) {
+    return accountTotal.value
+  }
+
+  if (isStudentMenu.value) {
+    return studentTotal.value
+  }
+
+  return localFilteredRows.value.length
+})
+
 const currentAccount = computed(() => {
   return sessionStorage.getItem(FITNESS_STORAGE_ACCOUNT) ?? 'fitness_admin'
 })
@@ -149,6 +379,150 @@ const handleSelect = (index: string) => {
 
 const resetSearch = () => {
   searchKeyword.value = ''
+  accountRoleFilter.value = ''
+  accountStatusFilter.value = ''
+  studentGradeFilter.value = ''
+  studentClassFilter.value = ''
+  studentFaceStatusFilter.value = ''
+  studentQualityFilter.value = ''
+  currentPage.value = 1
+}
+
+const loadAccountRows = () => {
+  if (!isAccountMenu.value) {
+    return
+  }
+
+  tableLoading.value = true
+
+  const { total, list } = queryFitnessAccounts({
+    keyword: searchKeyword.value,
+    role: accountRoleFilter.value,
+    status: accountStatusFilter.value,
+    page: currentPage.value,
+    pageSize: pageSize.value
+  })
+
+  accountRows.value = list
+  accountTotal.value = total
+  tableLoading.value = false
+}
+
+const loadStudentRows = () => {
+  if (!isStudentMenu.value) {
+    return
+  }
+
+  tableLoading.value = true
+
+  const { total, list } = queryFitnessStudents({
+    keyword: searchKeyword.value,
+    gradeName: studentGradeFilter.value,
+    className: studentClassFilter.value,
+    faceStatus: studentFaceStatusFilter.value,
+    quality: studentQualityFilter.value,
+    page: currentPage.value,
+    pageSize: pageSize.value
+  })
+
+  studentRows.value = list
+  studentTotal.value = total
+  tableLoading.value = false
+}
+
+const refreshRemoteRows = () => {
+  if (isAccountMenu.value) {
+    loadAccountRows()
+    return
+  }
+
+  if (isStudentMenu.value) {
+    loadStudentRows()
+  }
+}
+
+const setAccountStatus = (row: FitnessAccountRecord, status: FitnessAccountStatus) => {
+  if (row.status === status) {
+    return
+  }
+
+  const updated = updateFitnessAccountStatus(row.account, status)
+
+  if (!updated) {
+    ElMessage.error('账号状态更新失败')
+    return
+  }
+
+  row.status = status
+  loadAccountRows()
+  ElMessage.success(`${row.name} 已${status}`)
+}
+
+const openStudentEditor = (row: FitnessStudentRecord) => {
+  studentEditForm.value = { ...row }
+  studentEditorVisible.value = true
+}
+
+const handleStudentPhotoChange = (uploadFile: UploadFile) => {
+  if (!uploadFile.raw) {
+    return
+  }
+
+  studentEditForm.value.facePhotoUrl = URL.createObjectURL(uploadFile.raw)
+}
+
+const submitStudentEdit = () => {
+  if (!studentEditForm.value.studentName.trim()) {
+    ElMessage.warning('请输入学生姓名')
+    return
+  }
+
+  if (!studentEditForm.value.className.trim()) {
+    ElMessage.warning('请输入班级')
+    return
+  }
+
+  if (!studentEditForm.value.facePhotoUrl.trim()) {
+    ElMessage.warning('请上传或填写人脸照片')
+    return
+  }
+
+  const updated = updateFitnessStudent({ ...studentEditForm.value })
+
+  if (!updated) {
+    ElMessage.error('学生信息保存失败')
+    return
+  }
+
+  studentEditorVisible.value = false
+  loadStudentRows()
+  ElMessage.success('学生信息已更新')
+}
+
+const removeStudent = async (row: FitnessStudentRecord) => {
+  try {
+    await ElMessageBox.confirm(`确认删除学生 ${row.studentName}（${row.studentId}）吗？删除后不可恢复。`, '删除提示', {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+  } catch {
+    return
+  }
+
+  const deleted = deleteFitnessStudent(row.studentId)
+
+  if (!deleted) {
+    ElMessage.error('删除失败，记录不存在')
+    return
+  }
+
+  if (studentRows.value.length === 1 && currentPage.value > 1) {
+    currentPage.value -= 1
+  }
+
+  loadStudentRows()
+  ElMessage.success('学生记录已删除')
 }
 
 const goLogin = () => {
@@ -167,11 +541,43 @@ onMounted(() => {
   if (role !== 'admin') {
     ElMessage.warning('请先使用平台管理员账号登录')
     void router.replace('/fitness')
+    return
   }
+
+  refreshRemoteRows()
 })
 
 watch(activeMenuId, () => {
   searchKeyword.value = ''
+  accountRoleFilter.value = ''
+  accountStatusFilter.value = ''
+  studentGradeFilter.value = ''
+  studentClassFilter.value = ''
+  studentFaceStatusFilter.value = ''
+  studentQualityFilter.value = ''
+  currentPage.value = 1
+
+  refreshRemoteRows()
+})
+
+watch([searchKeyword, accountRoleFilter, accountStatusFilter], () => {
+  if (isAccountMenu.value) {
+    currentPage.value = 1
+    loadAccountRows()
+  }
+})
+
+watch([searchKeyword, studentGradeFilter, studentClassFilter, studentFaceStatusFilter, studentQualityFilter], () => {
+  if (isStudentMenu.value) {
+    currentPage.value = 1
+    loadStudentRows()
+  }
+})
+
+watch([currentPage, pageSize], () => {
+  if (hasRemotePagination.value) {
+    refreshRemoteRows()
+  }
 })
 </script>
 
@@ -292,11 +698,42 @@ watch(activeMenuId, () => {
   color: #0f172a;
 }
 
-.fitness-manage-header p:last-child {
+.fitness-manage-header-desc {
   margin-top: 10px;
   font-size: 15px;
   line-height: 1.8;
   color: #526173;
+}
+
+.fitness-manage-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.fitness-manage-header-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fitness-manage-header-notes {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.fitness-manage-header-notes p {
+  margin: 0;
+  color: #526173;
+  line-height: 1.7;
 }
 
 .fitness-stat-grid {
@@ -331,8 +768,6 @@ watch(activeMenuId, () => {
 
 .fitness-content-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 0.48fr) minmax(0, 1fr);
-  gap: 18px;
 }
 
 .fitness-panel {
@@ -370,22 +805,72 @@ watch(activeMenuId, () => {
   width: 240px;
 }
 
-.fitness-highlight-list {
-  display: grid;
-  gap: 12px;
+.fitness-filter-select {
+  width: 140px;
 }
 
-.fitness-highlight-item {
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: rgba(240, 253, 250, 0.78);
-  color: #1f2937;
-  line-height: 1.7;
+.fitness-filter-select-wide {
+  width: 180px;
 }
 
 .fitness-data-table :deep(.el-table__cell) {
   padding-top: 12px;
   padding-bottom: 12px;
+}
+
+.fitness-photo-cell {
+  display: flex;
+  justify-content: center;
+}
+
+.fitness-photo-image {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+}
+
+.fitness-photo-image-preview {
+  width: 88px;
+  height: 88px;
+}
+
+.fitness-status-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fitness-row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fitness-edit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+}
+
+.fitness-edit-form-full {
+  grid-column: 1 / -1;
+}
+
+.fitness-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.fitness-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fitness-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
 }
 
 @media (max-width: 1180px) {
@@ -412,6 +897,21 @@ watch(activeMenuId, () => {
 
   .fitness-search-input {
     width: 100%;
+  }
+
+  .fitness-filter-select,
+  .fitness-filter-select-wide {
+    width: 100%;
+  }
+
+  .fitness-edit-form {
+    grid-template-columns: 1fr;
+  }
+
+  .fitness-upload-row,
+  .fitness-row-actions,
+  .fitness-status-actions {
+    flex-wrap: wrap;
   }
 
   .fitness-manage-side,

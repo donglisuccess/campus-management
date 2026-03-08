@@ -1,3 +1,14 @@
+import {
+  FITNESS_ACCOUNT_COLUMNS,
+  FITNESS_ACCOUNT_HIGHLIGHTS,
+  FITNESS_ACCOUNT_STATS
+} from './fitnessAccounts'
+import {
+  FITNESS_STUDENT_COLUMNS,
+  FITNESS_STUDENT_HIGHLIGHTS,
+  getFitnessStudentMenuStats
+} from './fitnessStudents'
+
 export type FitnessRole = 'admin' | 'teacher' | 'headTeacher' | 'student'
 
 export interface FitnessAdminStat {
@@ -146,59 +157,20 @@ export const FITNESS_ADMIN_MENU_ITEMS: FitnessAdminMenuItem[] = [
     group: '基础管理',
     title: '账号与权限',
     description: '管理管理员、体育教师、班主任、学生账号，并按学校、年级、班级配置权限范围。',
-    stats: [
-      { label: '管理员账号', value: '8' },
-      { label: '体育教师', value: '126' },
-      { label: '班主任', value: '284' },
-      { label: '学生账号', value: '20,684' }
-    ],
-    highlights: [
-      '支持角色授权、账号启停、密码重置。',
-      '可按校区、年级、班级限定数据访问范围。',
-      '所有关键操作需记录审计日志。'
-    ],
-    columns: [
-      { prop: 'name', label: '姓名', minWidth: 120 },
-      { prop: 'role', label: '角色', minWidth: 120 },
-      { prop: 'scope', label: '权限范围', minWidth: 180 },
-      { prop: 'status', label: '账号状态', minWidth: 120 }
-    ],
-    rows: [
-      { name: '王宁', role: '平台管理员', scope: '全校数据与系统配置', status: '启用' },
-      { name: '赵晨', role: '体育教师', scope: '高一、高二体育课数据', status: '启用' },
-      { name: '李悦', role: '班主任', scope: '七年级 2 班', status: '启用' },
-      { name: '2026000188', role: '学生', scope: '个人档案与成绩', status: '启用' }
-    ]
+    stats: FITNESS_ACCOUNT_STATS,
+    highlights: FITNESS_ACCOUNT_HIGHLIGHTS,
+    columns: [...FITNESS_ACCOUNT_COLUMNS],
+    rows: []
   },
   {
     id: 'students',
     group: '基础管理',
     title: '学生与人脸库',
     description: '查看学生档案、人脸照片状态、照片质量检测结果和按班级的采集完成情况。',
-    stats: [
-      { label: '学生总数', value: '20,684' },
-      { label: '已采集人脸', value: '19,937' },
-      { label: '待补采', value: '747' },
-      { label: '质量异常', value: '318' }
-    ],
-    highlights: [
-      '支持通过姓名、学号快速检索照片。',
-      '支持按班级查看采集进度。',
-      '支持人工修改、删除与批量导入照片。'
-    ],
-    columns: [
-      { prop: 'className', label: '班级', minWidth: 140 },
-      { prop: 'studentName', label: '学生姓名', minWidth: 120 },
-      { prop: 'studentId', label: '学号', minWidth: 140 },
-      { prop: 'quality', label: '照片质量', minWidth: 120 },
-      { prop: 'status', label: '采集状态', minWidth: 120 }
-    ],
-    rows: [
-      { className: '七年级 2 班', studentName: '周航', studentId: '2026100221', quality: '像素不足', status: '待重采' },
-      { className: '七年级 2 班', studentName: '陈曦', studentId: '2026100228', quality: '合格', status: '已入库' },
-      { className: '高一 3 班', studentName: '沈嘉', studentId: '2026400312', quality: '多张人脸', status: '待审核' },
-      { className: '高二 1 班', studentName: '刘哲', studentId: '2026500104', quality: '合格', status: '已同步设备' }
-    ]
+    stats: getFitnessStudentMenuStats(),
+    highlights: FITNESS_STUDENT_HIGHLIGHTS,
+    columns: [...FITNESS_STUDENT_COLUMNS],
+    rows: []
   },
   {
     id: 'scores',

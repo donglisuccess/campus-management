@@ -120,7 +120,7 @@ const systems: SystemEntry[] = [
     title: '5G虚拟仿真实训系统',
     description:
       '基于 5G 网络仿真技术的在线教学平台，支持 5G网络建设仿真训练、教学考核、实验任务配置和成绩管理。',
-    path: '/vr-training',
+    path: '/vr-training/login',
     icon: 'Connection',
     tone: 'violet'
   },

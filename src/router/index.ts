@@ -44,6 +44,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'vr-training',
         name: 'VrTraining',
+        meta: { requiresVrAuth: true },
         component: () => import('@/views/VrTraining/index.vue')
       },
       {
@@ -90,6 +91,12 @@ routes.push({
 })
 
 routes.push({
+  path: '/vr-training/login',
+  name: 'VrTrainingLogin',
+  component: () => import('@/views/VrTraining/Login.vue')
+})
+
+routes.push({
   path: '/teacher-platform',
   name: 'TeacherPlatform',
   component: () => import('@/views/TeacherPlatform/index.vue')
@@ -108,10 +115,15 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const hasLabAuth = sessionStorage.getItem('lab_auth') === '1'
+  const hasVrAuth = sessionStorage.getItem('vr_auth') === '1'
   const hasWelcomeAuth = sessionStorage.getItem('welcome_auth') === '1'
 
   if (to.meta.requiresLabAuth && !hasLabAuth) {
     return '/lab/login'
+  }
+
+  if (to.meta.requiresVrAuth && !hasVrAuth) {
+    return '/vr-training/login'
   }
 
   if (to.meta.requiresWelcomeAuth && !hasWelcomeAuth) {
@@ -120,6 +132,10 @@ router.beforeEach((to) => {
 
   if (to.path === '/lab/login' && hasLabAuth) {
     return '/lab'
+  }
+
+  if (to.path === '/vr-training/login' && hasVrAuth) {
+    return '/vr-training'
   }
 
   if (to.path === '/welcome/login' && hasWelcomeAuth) {

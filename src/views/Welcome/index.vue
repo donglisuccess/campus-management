@@ -3,9 +3,10 @@
     <el-card class="placeholder-card">
       <p class="placeholder-kicker">Welcome Admin</p>
       <h2 class="placeholder-title">智慧校园迎新小工具</h2>
-      <p class="placeholder-desc">管理后台入口已预留，可继续扩展新生信息管理、报到审核、宿舍分配与通知发布模块。</p>
+      <p class="placeholder-desc">现已开放领导驾驶舱与 PC 管理端一期模块，可继续扩展校园地图、统计分析与设备管理。</p>
       <div class="placeholder-actions">
         <el-button type="primary" round @click="goDashboard">进入领导驾驶舱</el-button>
+        <el-button round @click="goManage">进入管理后台</el-button>
         <el-button round @click="goHome">返回首页</el-button>
       </div>
     </el-card>
@@ -19,6 +20,10 @@ const router = useRouter()
 
 const goDashboard = () => {
   void router.push('/welcome/dashboard')
+}
+
+const goManage = () => {
+  void router.push('/welcome/login')
 }
 
 const goHome = () => {

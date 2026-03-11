@@ -58,6 +58,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/Welcome/index.vue')
       },
       {
+        path: 'welcome/manage',
+        name: 'WelcomeManage',
+        meta: { requiresWelcomeAuth: true },
+        component: () => import('@/views/Welcome/Manage.vue')
+      },
+      {
         path: 'welcome/dashboard',
         name: 'WelcomeDashboard',
         component: () => import('@/views/Welcome/Dashboard.vue')
@@ -75,6 +81,12 @@ routes.push({
   path: '/lab/login',
   name: 'LabLogin',
   component: () => import('@/views/Lab/Login.vue')
+})
+
+routes.push({
+  path: '/welcome/login',
+  name: 'WelcomeLogin',
+  component: () => import('@/views/Welcome/Login.vue')
 })
 
 routes.push({
@@ -96,13 +108,22 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const hasLabAuth = sessionStorage.getItem('lab_auth') === '1'
+  const hasWelcomeAuth = sessionStorage.getItem('welcome_auth') === '1'
 
   if (to.meta.requiresLabAuth && !hasLabAuth) {
     return '/lab/login'
   }
 
+  if (to.meta.requiresWelcomeAuth && !hasWelcomeAuth) {
+    return '/welcome/login'
+  }
+
   if (to.path === '/lab/login' && hasLabAuth) {
     return '/lab'
+  }
+
+  if (to.path === '/welcome/login' && hasWelcomeAuth) {
+    return '/welcome/manage'
   }
 
   return true

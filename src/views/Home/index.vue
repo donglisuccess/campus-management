@@ -140,7 +140,7 @@ const systems: SystemEntry[] = [
     tone: 'rose',
     actions: [
       { label: '进入大屏领导驾驶舱', path: '/welcome/dashboard', type: 'primary' },
-      { label: '进入管理后台', path: '/welcome', type: 'default' }
+      { label: '进入管理后台', path: '/welcome/login', type: 'default' }
     ]
   }
 ]
